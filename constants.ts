@@ -43,7 +43,7 @@ export const BLOCKS_SETTINGS = {
     defaultContent: "Heading 1",
     description: "Big section heading.",
     toolbar: "type | font | italic underline strikethrough | color",
-    icon: "icons/h-1.svg",
+    icon: "h1",
     availableTypes: [
       "text",
       "headline1",
@@ -60,7 +60,7 @@ export const BLOCKS_SETTINGS = {
     defaultContent: "Heading 2",
     description: "Medium section heading.",
     toolbar: "type | font | italic underline strikethrough | color",
-    icon: "icons/h-2.svg",
+    icon: "h2",
     availableTypes: [
       "text",
       "headline1",
@@ -77,7 +77,7 @@ export const BLOCKS_SETTINGS = {
     defaultContent: "Heading 3",
     description: "Small section heading.",
     toolbar: "type | font | italic underline strikethrough | color",
-    icon: "icons/h-3.svg",
+    icon: "h3",
     availableTypes: [
       "text",
       "headline1",
@@ -95,7 +95,7 @@ export const BLOCKS_SETTINGS = {
     defaultContent: "Write something, or press '/' for commands...",
     toolbar:
       "type | font | bold italic underline strikethrough | color bgColor | viewCode",
-    icon: "icons/align-left.svg",
+    icon: "alignLeft",
     availableTypes: [
       "text",
       "headline1",
@@ -111,7 +111,7 @@ export const BLOCKS_SETTINGS = {
     blockName: BLOCK_TYPES.image,
     defaultContent: "",
     toolbar: "size",
-    icon: "icons/photo.svg",
+    icon: "photo",
     description: "Upload an image or embed it via link.",
     availableTypes: ["html"],
   },
@@ -121,7 +121,7 @@ export const BLOCKS_SETTINGS = {
     blockName: BLOCK_TYPES.code,
     defaultContent: "Write your code here...",
     toolbar: "type",
-    icon: "icons/code.svg",
+    icon: "code",
     description: "Write a code snippet.",
     availableTypes: [
       "text",
@@ -140,7 +140,7 @@ export const BLOCKS_SETTINGS = {
     defaultContent: "Write something, or press '/' for commands...",
     toolbar:
       "type | font | bold italic underline strikethrough | color bgColor | viewCode",
-    icon: "icons/article.svg",
+    icon: "article",
     availableTypes: ["text", "code"],
   },
 };

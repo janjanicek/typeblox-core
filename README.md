@@ -1,4 +1,5 @@
 # typeblox-core
+
 Headless block-based WYSIWYG Editor
 
 ## Installation
@@ -27,17 +28,24 @@ onUpdate: onChange,
 
 console.log(TypeBoxEditor.getBlocks()); // To see instances of blocks
 
-```
+// Examples of operations
 
-```
-<div id="typeblox-editor"></div>
+TypeBoxEditor.getCurrentBlock()?.toggleBold(); //toggles the bold style on the selection text
+
+TypeBoxEditor.getCurrentBlock()?.toggleItalic(); //toggles the bold style on the selection
+
+TypeBoxEditor.getCurrentBlock()?.toggleType("headline1"); //change the type of the block to h1
+
+TypeBoxEditor.format().clearFormat(); //clears the text style
 
 ```
 
 ## Features
-* Lightweight utility library
-* Easy integration into any project
-* Provides core TypeBlox functionalities
+
+- Lightweight utility library
+- Easy integration into any project
+- Provides core Typeblox functionalities
 
 ## License
+
 This package is licensed under the MIT License.
