@@ -1,4 +1,4 @@
-import type { TypingManager } from "../managers/TypingManager";
+import type { TypingManager } from "./TypingManager";
 import { AVAILABLE_FONTS, CLASSES } from "../constants";
 import { detectedStyles } from "../types";
 import { toCssStyle } from "../utils/css";
