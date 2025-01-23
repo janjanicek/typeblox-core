@@ -1,12 +1,12 @@
 /**
  * @jest-environment jsdom
  */
-import { FormatManager } from "../FormatManager";
+import { StyleManager } from "../StyleManager";
 import { DOMManager } from "../DOMManager";
 import { TypingManager } from "../TypingManager";
 
-describe("FormatManager", () => {
-  let formatManager: FormatManager;
+describe("StyleManager", () => {
+  let styleManager: StyleManager;
   let mockTypingManager: jest.Mocked<TypingManager>;
   let mockDOMManager: jest.Mocked<DOMManager>;
 
@@ -26,14 +26,15 @@ describe("FormatManager", () => {
     } as unknown as jest.Mocked<DOMManager>;
 
     // Initialize FormatManager with mocks
-    formatManager = new FormatManager(mockTypingManager, mockDOMManager);
+    styleManager = new StyleManager();
+    styleManager.setDependencies(mockDOMManager, mockTypingManager);
   });
 
   describe("applyFormat", () => {
     it("should not apply format if no contentElement is found", () => {
       mockDOMManager.getBlockElement.mockReturnValue(null);
 
-      formatManager.applyFormat("b");
+      styleManager.applyFormat("b");
 
       expect(mockDOMManager.getBlockElement).toHaveBeenCalled();
       expect(mockTypingManager.getSelectedElement).not.toHaveBeenCalled();
@@ -44,7 +45,7 @@ describe("FormatManager", () => {
       mockDOMManager.getBlockElement.mockReturnValue(mockContentElement);
       mockTypingManager.getSelectedElement.mockReturnValue(null);
 
-      formatManager.applyFormat("b");
+      styleManager.applyFormat("b");
 
       expect(mockDOMManager.getBlockElement).toHaveBeenCalled();
       expect(mockTypingManager.getSelectedElement).toHaveBeenCalledWith(
@@ -63,7 +64,7 @@ describe("FormatManager", () => {
       const parentElement = document.createElement("div");
       parentElement.appendChild(mockSelectedElement);
 
-      formatManager.applyFormat("b", { color: "red" });
+      styleManager.applyFormat("b", { color: "red" });
 
       const wrapper = parentElement.querySelector("b");
       expect(wrapper).not.toBeNull();
@@ -76,7 +77,7 @@ describe("FormatManager", () => {
     it("should not unapply format if no selectedElement is found", () => {
       mockTypingManager.getSelectedElement.mockReturnValue(null);
 
-      formatManager.unapplyFormat("b");
+      styleManager.unapplyFormat("b");
 
       expect(mockTypingManager.getSelectedElement).toHaveBeenCalledWith(
         document,
@@ -89,11 +90,14 @@ describe("FormatManager", () => {
       mockParentElement.appendChild(mockSelectedElement);
       document.body.appendChild(mockParentElement);
 
+      styleManager.unapplyAliases = jest.fn();
+
       mockTypingManager.getSelectedElement.mockReturnValue(mockSelectedElement);
-
-      formatManager.unapplyFormat("b");
-
-      expect(mockSelectedElement.parentNode).toBeNull();
+      styleManager.unapplyFormat("b");
+      expect(mockDOMManager.removeElement).toHaveBeenCalledWith(
+        mockParentElement,
+      );
+      expect(styleManager.unapplyAliases).toHaveBeenCalledWith("b");
     });
 
     it("should remove a specific style from a matching parent element", () => {
@@ -105,7 +109,7 @@ describe("FormatManager", () => {
 
       mockTypingManager.getSelectedElement.mockReturnValue(mockSelectedElement);
 
-      formatManager.unapplyFormat("b", "color");
+      styleManager.unapplyFormat("b", "color");
 
       expect(mockParentElement.style.color).toBe("");
     });
@@ -115,7 +119,7 @@ describe("FormatManager", () => {
     it("should return default styles if no selection is found", () => {
       mockTypingManager.getSelectedElement.mockReturnValue(null);
 
-      const styles = formatManager.getStyle();
+      const styles = styleManager.getStyle();
 
       expect(styles).toEqual({
         color: null,
@@ -130,6 +134,7 @@ describe("FormatManager", () => {
         isH3: false,
         isParagraph: false,
         isCode: false,
+        textAlign: "left",
       });
     });
 
@@ -139,7 +144,7 @@ describe("FormatManager", () => {
 
       mockTypingManager.getCursorElement.mockReturnValue(mockSelectedElement);
 
-      const styles = formatManager.getStyle();
+      const styles = styleManager.getStyle();
 
       expect(styles.isBold).toBe(true);
     });
@@ -150,7 +155,7 @@ describe("FormatManager", () => {
 
       mockTypingManager.getCursorElement.mockReturnValue(mockSelectedElement);
 
-      const styles = formatManager.getStyle();
+      const styles = styleManager.getStyle();
 
       expect(styles.isBold).toBe(true);
     });
@@ -179,7 +184,7 @@ describe("FormatManager", () => {
 
       mockTypingManager.getCursorElement.mockReturnValue(mockBoldElement);
 
-      const styles = formatManager.getStyle();
+      const styles = styleManager.getStyle();
 
       expect(styles.isBold).toBe(true);
     });
@@ -190,7 +195,7 @@ describe("FormatManager", () => {
 
       mockTypingManager.getCursorElement.mockReturnValue(mockSelectedElement);
 
-      const styles = formatManager.getStyle();
+      const styles = styleManager.getStyle();
 
       expect(styles.isBold).toBe(true);
     });
@@ -203,7 +208,7 @@ describe("FormatManager", () => {
       mockParentElement.appendChild(mockSelectedElement);
       mockTypingManager.getCursorElement.mockReturnValue(mockSelectedElement);
 
-      const styles = formatManager.getStyle();
+      const styles = styleManager.getStyle();
 
       expect(styles.isBold).toBe(true);
     });
@@ -215,7 +220,7 @@ describe("FormatManager", () => {
 
       mockTypingManager.getCursorElement.mockReturnValue(mockSelectedElement);
 
-      const styles = formatManager.getStyle();
+      const styles = styleManager.getStyle();
 
       expect(styles.color).toBe("blue");
       expect(styles.isItalic).toBe(true);
@@ -248,7 +253,7 @@ describe("FormatManager", () => {
 
       mockTypingManager.getSelectedElement.mockReturnValue(container);
 
-      formatManager.clearFormat();
+      styleManager.clearFormat();
 
       const normalizedOutput = container.innerHTML.replace(/\s+/g, " ").trim();
       const expectedOutput = "<p> Bold and Italic text with Underline. </p>";
@@ -265,7 +270,7 @@ describe("FormatManager", () => {
 
       mockTypingManager.getSelectedElement.mockReturnValue(container);
 
-      formatManager.clearFormat();
+      styleManager.clearFormat();
 
       const normalizedOutput = container.innerHTML.replace(/\s+/g, " ").trim();
       const expectedOutput = "<p> Bold and Underlined text. </p>";
@@ -282,7 +287,7 @@ describe("FormatManager", () => {
 
       mockTypingManager.getSelectedElement.mockReturnValue(container);
 
-      formatManager.clearFormat();
+      styleManager.clearFormat();
 
       const normalizedOutput = container.innerHTML.replace(/\s+/g, " ").trim();
       const expectedOutput = "<p> Red Text and highlighted text. </p>";
@@ -299,7 +304,7 @@ describe("FormatManager", () => {
 
       mockTypingManager.getSelectedElement.mockReturnValue(container);
 
-      formatManager.clearFormat();
+      styleManager.clearFormat();
 
       const normalizedOutput = container.innerHTML.replace(/\s+/g, " ").trim();
       const expectedOutput = "<div> Deeply nested text. </div>";
@@ -311,7 +316,7 @@ describe("FormatManager", () => {
       mockTypingManager.getSelectedElement.mockReturnValue(null);
       mockTypingManager.getCursorElement.mockReturnValue(null);
 
-      formatManager.clearFormat();
+      styleManager.clearFormat();
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         "No selected or cursor element found for clearing formatting.",
@@ -327,7 +332,7 @@ describe("FormatManager", () => {
 
       mockTypingManager.getSelectedElement.mockReturnValue(container);
 
-      formatManager.clearFormat();
+      styleManager.clearFormat();
 
       const normalizedOutput = container.innerHTML.replace(/\s+/g, " ").trim();
       const expectedOutput = "<p> Part 1 Part 2 Part 3. </p>";

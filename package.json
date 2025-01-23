@@ -1,8 +1,7 @@
 {
   "name": "@typeblox/core",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Headless rich block-based WYSIWYG editor",
-  "dependencies": {},
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -21,8 +20,8 @@
     "headless",
     "rich"
   ],
-  "author": "Typeblox",
-  "license": "MIT",
+  "author": "Typeblox team <info@typeblox.com>",
+  "license": "SEE LICENSE IN LICENSE",
   "bugs": {
     "url": "https://github.com/janjanicek/typeblox-core/issues"
   },
@@ -30,9 +29,9 @@
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "jest": "^29.7.0",
-    "ts-jest": "^29.2.5",
     "jest-environment-jsdom": "^29.7.0",
     "prettier": "^3.4.2",
+    "ts-jest": "^29.2.5",
     "typescript": "^5.7.3"
   }
 }

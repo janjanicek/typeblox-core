@@ -168,4 +168,13 @@ export class TypingManager {
 
     this.mergeConsecutiveStyledElements(blockElement);
   }
+
+  isCursorAtStart() {
+    const selection = window.getSelection();
+    return (
+      selection &&
+      selection.rangeCount > 0 &&
+      selection.getRangeAt(0).startOffset === 0
+    );
+  }
 }

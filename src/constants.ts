@@ -17,6 +17,8 @@ export const BLOCK_TYPES: any = {
   headline2: "headline2",
   headline3: "headline3",
   html: "html",
+  bulletedList: "bulletedList",
+  numberedList: "numberedList",
 };
 
 export const AVAILABLE_BLOCKS: BlockType[] = [
@@ -94,7 +96,7 @@ export const BLOCKS_SETTINGS = {
     description: "Just start writing with a simple text.",
     defaultContent: "Write something, or press '/' for commands...",
     toolbar:
-      "type | font | bold italic underline strikethrough | color bgColor | viewCode",
+      "type | font | bold italic underline strikethrough | align | color bgColor | viewCode",
     icon: "alignLeft",
     availableTypes: [
       "text",
@@ -110,9 +112,9 @@ export const BLOCKS_SETTINGS = {
     visibleName: "Image",
     blockName: BLOCK_TYPES.image,
     defaultContent: "",
-    toolbar: "size",
     icon: "photo",
     description: "Upload an image or embed it via link.",
+    toolbar: "replaceImage | align",
     availableTypes: ["html"],
   },
   code: {
@@ -131,6 +133,28 @@ export const BLOCKS_SETTINGS = {
       "code",
       "html",
     ],
+  },
+  bulletedList: {
+    tag: "ul",
+    visibleName: "Bulleted list",
+    blockName: BLOCK_TYPES.bulletedList,
+    description: "Create a simple bulleted list",
+    defaultContent: "List",
+    toolbar:
+      "type | font | bold italic underline strikethrough | color bgColor",
+    icon: "article",
+    availableTypes: ["numberedList", "text", "h1", "h2", "h3", "code", "html"],
+  },
+  numberedList: {
+    tag: "ol",
+    visibleName: "Numbered list",
+    blockName: BLOCK_TYPES.bulletedList,
+    description: "Create a simple bulleted list",
+    defaultContent: "List",
+    toolbar:
+      "type | font | bold italic underline strikethrough | color bgColor",
+    icon: "article",
+    availableTypes: ["bulletedList", "text", "h1", "h2", "h3", "code", "html"],
   },
   html: {
     tag: "div",
@@ -160,3 +184,13 @@ export const EVENTS = {
   styleChange: "typeblox.styleChanges",
   selectionChange: "typeblox.selectionChange",
 };
+
+export const allowedAttributes = [
+  "data-id",
+  "role",
+  "aria-label",
+  "alt",
+  "title",
+  "width",
+  "height",
+];

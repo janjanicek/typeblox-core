@@ -1,13 +1,20 @@
 import { DOMManager } from "./DOMManager";
 
 export class PasteManager {
-  private DOMManager: DOMManager;
+  private DOMManager: DOMManager | null = null;
 
-  constructor(DOMManager: DOMManager) {
+  constructor(initialDOMManager?: DOMManager) {
+    if (initialDOMManager) {
+      this.DOMManager = initialDOMManager;
+    }
+  }
+
+  setDependencies(DOMManager: DOMManager) {
     this.DOMManager = DOMManager;
   }
 
   public pasteContent(e: ClipboardEvent) {
+    if (!this.DOMManager) return;
     e.preventDefault(); // Prevent default paste behavior
 
     // Get the pasted HTML or plain text

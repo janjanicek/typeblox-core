@@ -1,25 +1,52 @@
 import type { TypingManager } from "./TypingManager";
-import { AVAILABLE_FONTS, CLASSES } from "../constants";
+import { AVAILABLE_FONTS, CLASSES, EVENTS } from "../constants";
 import { detectedStyles } from "../types";
 import { toCssStyle } from "../utils/css";
 import { DOMManager } from "./DOMManager";
+import { EventEmitter } from "../classes/EventEmitter";
+import type { Blox } from "../classes/Blox";
 
-export class FormatManager {
-  private TypingManager: TypingManager;
+export class StyleManager extends EventEmitter {
+  private TypingManager: TypingManager | null = null;
 
-  private DOMManager: DOMManager;
+  private DOMManager: DOMManager | null = null;
 
-  constructor(TypingManager: TypingManager, DOMManager: DOMManager) {
-    this.TypingManager = TypingManager;
-    this.DOMManager = DOMManager;
+  private currentStyles: detectedStyles = {
+    isBold: false,
+    isItalic: false,
+    isUnderline: false,
+    isStrikeout: false,
+    color: "#000000",
+    backgroundColor: "#ffffff",
+    fontFamily: "arial",
+    isH1: false,
+    isH2: false,
+    isH3: false,
+    isParagraph: false,
+    isCode: false,
+    textAlign: "left",
+  };
+
+  constructor() {
+    super();
+    this.currentStyles = this.getStyle();
   }
 
+  setDependencies(DOMManager: DOMManager, TypingManager: TypingManager) {
+    this.DOMManager = DOMManager;
+    this.TypingManager = TypingManager;
+  }
+
+  private areDependenciesSet = () => this.TypingManager && this.DOMManager;
+
   public applyFormat(tagName: string, style?: Record<string, string>) {
-    const contentElement = this.DOMManager.getBlockElement();
+    if (!this.areDependenciesSet()) return;
+
+    const contentElement = this.DOMManager?.getBlockElement();
     if (!contentElement) return;
 
     const selectedElement =
-      this.TypingManager.getSelectedElement(contentElement);
+      this.TypingManager?.getSelectedElement(contentElement);
 
     if (!selectedElement || selectedElement.textContent?.trim() === "") {
       return;
@@ -68,7 +95,9 @@ export class FormatManager {
   }
 
   public unapplyFormat(tagName: string, styleKey: string | null = null) {
-    const selectedElement = this.TypingManager.getSelectedElement(document);
+    if (!this.areDependenciesSet()) return;
+
+    const selectedElement = this.TypingManager?.getSelectedElement(document);
     if (!selectedElement) {
       return;
     }
@@ -81,13 +110,13 @@ export class FormatManager {
 
     if (matchingChildren.length > 0) {
       Array.from(matchingChildren).forEach((element) => {
-        this.DOMManager.removeElement(element);
+        this.DOMManager?.removeElement(element);
       });
     }
 
     if (matchingParent && isMatchingSelection) {
-      this.DOMManager.removeElement(matchingParent);
-      this.TypingManager.selectAllTextInSelectedElement();
+      this.DOMManager?.removeElement(matchingParent);
+      this.TypingManager?.selectAllTextInSelectedElement();
     }
 
     if (styleKey) {
@@ -113,9 +142,9 @@ export class FormatManager {
   }
 
   getStyle = (): detectedStyles => {
-    const selection = this.TypingManager.getSelectedElement();
+    const selection = this.TypingManager?.getSelectedElement();
     let currentNode = (
-      selection ? selection : this.TypingManager.getCursorElement()
+      selection ? selection : this.TypingManager?.getCursorElement()
     ) as HTMLElement;
     if (currentNode) {
       // Default styles
@@ -132,6 +161,7 @@ export class FormatManager {
         isH3: false,
         isParagraph: false,
         isCode: false,
+        textAlign: null as string | null,
       };
 
       const detectStylesOnNode = (node: HTMLElement) => {
@@ -208,6 +238,11 @@ export class FormatManager {
             detectedStyles.fontFamily = "Arial";
           }
         }
+
+        // Alignment:
+        if (!detectedStyles.textAlign && computedStyle.textAlign) {
+          detectedStyles.textAlign = computedStyle.textAlign;
+        }
       };
 
       if (
@@ -250,11 +285,13 @@ export class FormatManager {
       isH3: false,
       isParagraph: false,
       isCode: false,
+      textAlign: "left",
     };
   };
   clearFormat = (element?: HTMLElement) => {
-    const selection = this.TypingManager.getSelectedElement();
-    const cursorElement = this.TypingManager.getCursorElement();
+    if (!this.areDependenciesSet()) return;
+    const selection = this.TypingManager?.getSelectedElement();
+    const cursorElement = this.TypingManager?.getCursorElement();
 
     // Determine the current node to operate on
     let targetElement = element || selection || cursorElement;
@@ -338,4 +375,17 @@ export class FormatManager {
     // Merge text nodes after cleanup
     mergeTextNodes(targetElement);
   };
+
+  public updateCurrentStyles(block: Blox): void {
+    const detectedStyles = this.getStyle();
+
+    // Update `currentStyles` with the detected styles
+    this.currentStyles = {
+      ...this.currentStyles, // Retain other styles
+      ...detectedStyles, // Update with the new styles from the block
+    };
+
+    // Optionally, emit a high-level styleChange event for external listeners
+    this.emit(EVENTS.styleChange, block);
+  }
 }

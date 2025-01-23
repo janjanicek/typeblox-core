@@ -52,9 +52,9 @@ export declare const BLOCKS_SETTINGS: {
         visibleName: string;
         blockName: any;
         defaultContent: string;
-        toolbar: string;
         icon: string;
         description: string;
+        toolbar: string;
         availableTypes: string[];
     };
     code: {
@@ -65,6 +65,26 @@ export declare const BLOCKS_SETTINGS: {
         toolbar: string;
         icon: string;
         description: string;
+        availableTypes: string[];
+    };
+    bulletedList: {
+        tag: string;
+        visibleName: string;
+        blockName: any;
+        description: string;
+        defaultContent: string;
+        toolbar: string;
+        icon: string;
+        availableTypes: string[];
+    };
+    numberedList: {
+        tag: string;
+        visibleName: string;
+        blockName: any;
+        description: string;
+        defaultContent: string;
+        toolbar: string;
+        icon: string;
         availableTypes: string[];
     };
     html: {
@@ -92,3 +112,4 @@ export declare const EVENTS: {
     styleChange: string;
     selectionChange: string;
 };
+export declare const allowedAttributes: string[];

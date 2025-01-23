@@ -1,50 +1,65 @@
-import { BLOCKS_SETTINGS, CLASSES, EVENTS } from "./constants";
-import { BlockType, CustomRange, detectedStyles } from "./types";
+import { CLASSES, EVENTS } from "./constants";
+import {
+  CustomRange,
+  detectedStyles,
+  imageUploadFunction,
+  onChangeFunction,
+  Extension,
+} from "./types";
 import { EventEmitter } from "events";
 import { Blox } from "./classes/Blox";
-import { FormatManager } from "./managers/FormatManager";
+import { StyleManager } from "./managers/StyleManager";
 import { registerListeners, removeListeners } from "./utils/listeners";
 import { HistoryManager } from "./managers/HistoryManager";
 import { TypingManager } from "./managers/TypingManager";
 import { DOMManager } from "./managers/DOMManager";
+import { BloxManager } from "./managers/BloxManager";
 import { PasteManager } from "./managers/PasteManager";
+import { ExtensionsManager } from "./managers/ExtensionsManager";
 
 export interface TypeBloxInitOptions {
   elementSelector?: string; // Optional parameter
   HTMLString: string; // Required parameter
-  onUpdate: Function;
+  onUpdate: onChangeFunction;
+  onImageUpload?: imageUploadFunction;
+  extensions?: Extension[] | null;
 }
 
 class Typeblox extends EventEmitter {
-  private blocks: Blox[] = [];
-
   private HistoryManager: HistoryManager;
 
   private TypingManager: TypingManager;
 
-  private FormatManager: FormatManager;
+  private StyleManager: StyleManager;
 
   private DOMManager: DOMManager;
 
+  private BloxManager: BloxManager;
+
   private PasteManager: PasteManager;
 
-  private currentStyles: detectedStyles = {
-    isBold: false,
-    isItalic: false,
-    isUnderline: false,
-    isStrikeout: false,
-    color: "#000000",
-    backgroundColor: "#ffffff",
-    fontFamily: "arial",
-    isH1: false,
-    isH2: false,
-    isH3: false,
-    isParagraph: false,
-    isCode: false,
+  private ExtensionsManager: ExtensionsManager;
+
+  public onChange: onChangeFunction = (updatedHTMLString: string) => {
+    sessionStorage.setItem("tempEditorContent", updatedHTMLString);
   };
 
-  public onChange: Function = (updatedHTMLString: string) => {
-    sessionStorage.setItem("tempEditorContent", updatedHTMLString);
+  public onImageUpload: imageUploadFunction = (
+    blobInfo: any,
+    success: Function,
+    failure: Function,
+  ) => {
+    try {
+      const blob = blobInfo.blob(); // Get the blob object from blobInfo
+      const blobName = blobInfo.filename(); // Assume blobInfo has a filename method
+      const blobURL = URL.createObjectURL(blob); // Create a temporary URL for the blob
+
+      // Simulate a success callback with the URL
+      success(blobURL);
+    } catch (error) {
+      // If there's an error, call the failure callback with the error message
+      failure("Failed to upload the image");
+    }
   };
 
   private currentSelection: CustomRange = { start: 0, end: 0 };
@@ -58,93 +73,60 @@ class Typeblox extends EventEmitter {
 
   constructor() {
     super();
-    this.DOMManager = new DOMManager();
-    this.PasteManager = new PasteManager(this.DOMManager);
+
     this.HistoryManager = new HistoryManager(25);
     this.TypingManager = new TypingManager();
-    this.FormatManager = new FormatManager(this.TypingManager, this.DOMManager);
-    this.currentStyles = this.getSelectionStyle();
+    this.PasteManager = new PasteManager(); // No dependencies initially
+    this.StyleManager = new StyleManager(); // No dependencies initially
+    this.BloxManager = new BloxManager(this.onChange); // No dependencies initially
+    this.DOMManager = new DOMManager(); // No dependencies initially
+    this.ExtensionsManager = new ExtensionsManager();
+
+    this.PasteManager.setDependencies(this.DOMManager);
+    this.StyleManager.setDependencies(this.DOMManager, this.TypingManager);
+    this.BloxManager.setDependencies(
+      this.TypingManager,
+      this.StyleManager,
+      this.PasteManager,
+      this.DOMManager,
+      this.HistoryManager,
+      this.onChange,
+    );
+    this.DOMManager.setDependencies(this.BloxManager);
+
+    this.BloxManager.on(EVENTS.blocksChanged, (blocks) => {
+      this.emit(EVENTS.blocksChanged, blocks);
+    });
+
+    this.BloxManager.on(EVENTS.styleChange, (block) => {
+      this.emit(EVENTS.styleChange, block);
+    });
+
+    this.StyleManager.on(EVENTS.styleChange, (block) => {
+      this.emit(EVENTS.styleChange, block);
+    });
+
     registerListeners(this.detectSelection);
   }
 
-  private updateCurrentStyles(block: Blox): void {
-    const detectedStyles = this.getSelectionStyle();
-
-    // Update `currentStyles` with the detected styles
-    this.currentStyles = {
-      ...this.currentStyles, // Retain other styles
-      ...detectedStyles, // Update with the new styles from the block
-    };
-
-    // Optionally, emit a high-level styleChange event for external listeners
-    this.emit(EVENTS.styleChange, this.currentStyles);
-  }
-
-  // Private methods
-  private parseHTMLToBlocks = (htmlString: string): Blox[] => {
-    // Parse the HTML string into a DOM Document
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlString, "text/html");
-
-    // Generate a unique ID generator
-    let idCounter = 1;
-    const generateId = () => (idCounter++).toString();
-
-    // Map each top-level element to the desired structure
-    const structure = Array.from(doc.body.children).map((element) => {
-      const tagName = element.tagName.toLowerCase();
-      let block = new Blox({
-        id: generateId(),
-        type: "text" as BlockType, // Default block type
-        content: element.innerHTML?.trim() || "",
-        onUpdate: this.onChange,
-        TypingManager: this.TypingManager,
-        FormatManager: this.FormatManager,
-        PasteManager: this.PasteManager,
-      });
-
-      // Find the corresponding block type in BLOCKS_SETTINGS
-      const blockSetting = Object.values(BLOCKS_SETTINGS).find(
-        (setting) => setting.tag === tagName,
-      );
-
-      if (blockSetting) {
-        block = new Blox({
-          id: generateId(),
-          type: blockSetting.blockName as BlockType,
-          content:
-            tagName === "img" // Special case for images
-              ? element.getAttribute("src") || ""
-              : element.innerHTML?.trim(),
-          onUpdate: this.onChange,
-          TypingManager: this.TypingManager,
-          FormatManager: this.FormatManager,
-          PasteManager: this.PasteManager,
-        });
-      }
-
-      block.on(EVENTS.styleChange, () => {
-        this.updateCurrentStyles(block);
-      });
-      block.on(EVENTS.blocksChanged, () => {
-        this.update(this.onChange);
-      });
-
-      return block;
-    });
-
-    return structure;
-  };
-
   // Public methods
   public init(options: TypeBloxInitOptions): void {
-    const { HTMLString, onUpdate } = options;
-    if (HTMLString) this.blocks = this.parseHTMLToBlocks(HTMLString);
+    const { HTMLString, onUpdate, onImageUpload, extensions } = options;
+    if (HTMLString)
+      this.blox().setBlox(this.elements().parseHTMLToBlocks(HTMLString));
     if (onUpdate) this.onChange = onUpdate;
+    if (onImageUpload) this.onImageUpload = this.onImageUpload;
+    if (extensions) this.registerAllExtensions(extensions);
+  }
+
+  private registerAllExtensions(extensions: Extension[]): void {
+    extensions.forEach((extension) => {
+      this.extensions().registerExtension(extension);
+    });
   }
 
   public destroy(): void {
-    this.blocks = [];
+    this.blox().setBlox([]);
     this.onChange = () => {};
     removeListeners(this.detectSelection);
   }
@@ -153,11 +135,19 @@ class Typeblox extends EventEmitter {
     return this.TypingManager;
   }
 
-  public format(): FormatManager {
-    return this.FormatManager;
+  public style(): StyleManager {
+    return this.StyleManager;
   }
 
-  public DOM(): DOMManager {
+  public blox(): BloxManager {
+    return this.BloxManager;
+  }
+
+  public extensions(): ExtensionsManager {
+    return this.ExtensionsManager;
+  }
+
+  public elements(): DOMManager {
     return this.DOMManager;
   }
 
@@ -165,20 +155,8 @@ class Typeblox extends EventEmitter {
     return this.PasteManager;
   }
 
-  public update(
-    onChange: Function,
-    providedBlocks?: Blox[],
-    calledFromEditor?: false,
-  ): void {
-    const newBlocks = providedBlocks ?? this.blocks;
-    this.blocks = newBlocks;
-    onChange(this.DOMManager.blocksToHTML(newBlocks));
-    this.saveHistory();
-    if (!calledFromEditor) this.emit(EVENTS.blocksChanged, this.blocks);
-  }
-
   public getBlockById(id: string | undefined): Blox | undefined {
-    return this.blocks?.find((block: Blox) => block.id === id);
+    return this.blox().getBlockById(id);
   }
 
   public getBlockElementById(id: string | undefined): HTMLElement | null {
@@ -186,12 +164,8 @@ class Typeblox extends EventEmitter {
     return this.DOMManager.getBlockElementById(id);
   }
 
-  public getBlocks(): Blox[] {
-    return this.blocks;
-  }
-
   public getSelectionStyle(): detectedStyles {
-    return this.format().getStyle();
+    return this.style().getStyle();
   }
 
   public getSelectionElement(): HTMLElement | null {
@@ -238,22 +212,22 @@ class Typeblox extends EventEmitter {
   }
 
   private handleSelectionChange(): void {
-    this.emit(EVENTS.selectionChange, this.currentStyles);
+    this.emit(EVENTS.selectionChange, this.style().getStyle());
   }
 
   public isStyle(style: string): boolean {
     switch (style) {
       case "bold": {
-        return this.currentStyles.isBold;
+        return this.style().getStyle().isBold;
       }
       case "italic": {
-        return this.currentStyles.isItalic;
+        return this.style().getStyle().isItalic;
       }
       case "underline": {
-        return this.currentStyles.isUnderline;
+        return this.style().getStyle().isUnderline;
       }
       case "strikethrough": {
-        return this.currentStyles.isStrikeout;
+        return this.style().getStyle().isStrikeout;
       }
       default:
         break;
@@ -264,18 +238,6 @@ class Typeblox extends EventEmitter {
   public getStyle(style: string): string {
     const styles: any = this.getSelectionStyle();
     return styles[style];
-  }
-
-  public getCurrentBlock(): Blox | null {
-    const currentBlockElement =
-      this.DOMManager.getBlockElement() as HTMLElement;
-    if (currentBlockElement) {
-      const blockId = currentBlockElement.dataset.typebloxId;
-      if (blockId) {
-        return this.getBlockById(blockId) ?? null;
-      }
-    }
-    return null;
   }
 
   private detectSelection = () => {
@@ -297,42 +259,38 @@ class Typeblox extends EventEmitter {
 
       if (editorElement && !this.isSameSelection(start, end)) {
         this.currentSelection = { start, end };
-        this.currentStyles = this.getSelectionStyle();
-        this.emit(EVENTS.selectionChange, this.currentStyles);
+        this.emit(EVENTS.selectionChange, this.style().getStyle());
       }
     }
   };
 
   private getCurrentDom = () => {
-    return this.DOMManager.blocksToHTML(this.blocks);
+    return this.DOMManager.blocksToHTML(this.blox().getBlox());
   };
 
-  private saveHistory = () => {
-    this.HistoryManager.saveState(this.getCurrentDom());
-  };
-
-  private updateEditorContent = (newContent: string) => {
-    this.blocks = this.parseHTMLToBlocks(newContent);
-    this.emit(EVENTS.blocksChanged, this.blocks);
+  private updateEditorContent = (
+    newContent: string,
+    isUndo: boolean = false,
+  ) => {
+    this.blox().setBlox(this.elements().parseHTMLToBlocks(newContent), isUndo);
+    this.emit(EVENTS.blocksChanged, this.blox().getBlox());
   };
 
   // Undo
   public handleUndo = () => {
     const previousState = this.HistoryManager?.undo(this.getCurrentDom());
     if (previousState) {
-      this.updateEditorContent(previousState);
+      this.updateEditorContent(previousState, true);
     }
   };
 
   // Redo
   public handleRedo = () => {
-    const nextState = this.HistoryManager?.redo(this.getCurrentDom());
+    const nextState = this.HistoryManager?.redo();
     if (nextState) {
       this.updateEditorContent(nextState);
     }
   };
-
-  public getSelectedBlock() {}
 }
 
 export default Typeblox;

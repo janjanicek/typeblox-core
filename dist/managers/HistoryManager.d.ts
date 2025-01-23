@@ -5,5 +5,5 @@ export declare class HistoryManager {
     constructor(maxHistorySize?: number);
     saveState(state: string): void;
     undo(currentState: string): string | null;
-    redo(currentState: string): string | null;
+    redo(): string | null;
 }

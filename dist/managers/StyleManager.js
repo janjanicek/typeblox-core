@@ -1,11 +1,31 @@
-import { AVAILABLE_FONTS, CLASSES } from "../constants";
+import { AVAILABLE_FONTS, CLASSES, EVENTS } from "../constants";
 import { toCssStyle } from "../utils/css";
-export class FormatManager {
-    constructor(TypingManager, DOMManager) {
+import { EventEmitter } from "../classes/EventEmitter";
+export class StyleManager extends EventEmitter {
+    constructor() {
+        super();
+        this.TypingManager = null;
+        this.DOMManager = null;
+        this.currentStyles = {
+            isBold: false,
+            isItalic: false,
+            isUnderline: false,
+            isStrikeout: false,
+            color: "#000000",
+            backgroundColor: "#ffffff",
+            fontFamily: "arial",
+            isH1: false,
+            isH2: false,
+            isH3: false,
+            isParagraph: false,
+            isCode: false,
+            textAlign: "left",
+        };
+        this.areDependenciesSet = () => this.TypingManager && this.DOMManager;
         this.getStyle = () => {
-            var _a;
-            const selection = this.TypingManager.getSelectedElement();
-            let currentNode = (selection ? selection : this.TypingManager.getCursorElement());
+            var _a, _b, _c;
+            const selection = (_a = this.TypingManager) === null || _a === void 0 ? void 0 : _a.getSelectedElement();
+            let currentNode = (selection ? selection : (_b = this.TypingManager) === null || _b === void 0 ? void 0 : _b.getCursorElement());
             if (currentNode) {
                 // Default styles
                 const detectedStyles = {
@@ -21,6 +41,7 @@ export class FormatManager {
                     isH3: false,
                     isParagraph: false,
                     isCode: false,
+                    textAlign: null,
                 };
                 const detectStylesOnNode = (node) => {
                     var _a, _b;
@@ -78,9 +99,13 @@ export class FormatManager {
                             detectedStyles.fontFamily = "Arial";
                         }
                     }
+                    // Alignment:
+                    if (!detectedStyles.textAlign && computedStyle.textAlign) {
+                        detectedStyles.textAlign = computedStyle.textAlign;
+                    }
                 };
                 if (currentNode.childNodes.length === 1 &&
-                    ((_a = currentNode.firstChild) === null || _a === void 0 ? void 0 : _a.nodeType) === Node.ELEMENT_NODE) {
+                    ((_c = currentNode.firstChild) === null || _c === void 0 ? void 0 : _c.nodeType) === Node.ELEMENT_NODE) {
                     const firstChild = currentNode.firstChild;
                     if (firstChild.matches("b, i, s, u")) {
                         detectStylesOnNode(firstChild);
@@ -112,12 +137,15 @@ export class FormatManager {
                 isH3: false,
                 isParagraph: false,
                 isCode: false,
+                textAlign: "left",
             };
         };
         this.clearFormat = (element) => {
-            var _a, _b, _c;
-            const selection = this.TypingManager.getSelectedElement();
-            const cursorElement = this.TypingManager.getCursorElement();
+            var _a, _b, _c, _d, _e;
+            if (!this.areDependenciesSet())
+                return;
+            const selection = (_a = this.TypingManager) === null || _a === void 0 ? void 0 : _a.getSelectedElement();
+            const cursorElement = (_b = this.TypingManager) === null || _b === void 0 ? void 0 : _b.getCursorElement();
             // Determine the current node to operate on
             let targetElement = element || selection || cursorElement;
             if (!targetElement) {
@@ -167,8 +195,8 @@ export class FormatManager {
                     child = child.nextSibling;
                 }
             };
-            while (((_b = (_a = targetElement.parentElement) === null || _a === void 0 ? void 0 : _a.textContent) === null || _b === void 0 ? void 0 : _b.trim()) ==
-                ((_c = targetElement.textContent) === null || _c === void 0 ? void 0 : _c.trim())) {
+            while (((_d = (_c = targetElement.parentElement) === null || _c === void 0 ? void 0 : _c.textContent) === null || _d === void 0 ? void 0 : _d.trim()) ==
+                ((_e = targetElement.textContent) === null || _e === void 0 ? void 0 : _e.trim())) {
                 targetElement = targetElement === null || targetElement === void 0 ? void 0 : targetElement.parentElement;
                 if (targetElement.matches("p[data-typeblox-editor]")) {
                     break;
@@ -179,16 +207,21 @@ export class FormatManager {
             // Merge text nodes after cleanup
             mergeTextNodes(targetElement);
         };
-        this.TypingManager = TypingManager;
+        this.currentStyles = this.getStyle();
+    }
+    setDependencies(DOMManager, TypingManager) {
         this.DOMManager = DOMManager;
+        this.TypingManager = TypingManager;
     }
     applyFormat(tagName, style) {
-        var _a, _b, _c;
-        const contentElement = this.DOMManager.getBlockElement();
+        var _a, _b, _c, _d, _e;
+        if (!this.areDependenciesSet())
+            return;
+        const contentElement = (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.getBlockElement();
         if (!contentElement)
             return;
-        const selectedElement = this.TypingManager.getSelectedElement(contentElement);
-        if (!selectedElement || ((_a = selectedElement.textContent) === null || _a === void 0 ? void 0 : _a.trim()) === "") {
+        const selectedElement = (_b = this.TypingManager) === null || _b === void 0 ? void 0 : _b.getSelectedElement(contentElement);
+        if (!selectedElement || ((_c = selectedElement.textContent) === null || _c === void 0 ? void 0 : _c.trim()) === "") {
             return;
         }
         let matchingParentStyle = null;
@@ -198,8 +231,8 @@ export class FormatManager {
             const styleKey = toCssStyle(leadingStyle);
             matchingParentStyle = selectedElement.closest(`${tagName}[style*=${styleKey}]`);
             if (matchingParentStyle &&
-                ((_b = matchingParentStyle.textContent) === null || _b === void 0 ? void 0 : _b.trim()) ===
-                    ((_c = selectedElement === null || selectedElement === void 0 ? void 0 : selectedElement.textContent) === null || _c === void 0 ? void 0 : _c.trim())) {
+                ((_d = matchingParentStyle.textContent) === null || _d === void 0 ? void 0 : _d.trim()) ===
+                    ((_e = selectedElement === null || selectedElement === void 0 ? void 0 : selectedElement.textContent) === null || _e === void 0 ? void 0 : _e.trim())) {
                 Object.keys(style).forEach((key) => {
                     matchingParentStyle.style[key] = style[key];
                 });
@@ -226,23 +259,26 @@ export class FormatManager {
         }
     }
     unapplyFormat(tagName, styleKey = null) {
-        var _a, _b;
-        const selectedElement = this.TypingManager.getSelectedElement(document);
+        var _a, _b, _c, _d, _e;
+        if (!this.areDependenciesSet())
+            return;
+        const selectedElement = (_a = this.TypingManager) === null || _a === void 0 ? void 0 : _a.getSelectedElement(document);
         if (!selectedElement) {
             return;
         }
         const matchingParent = selectedElement.closest(tagName);
-        const isMatchingSelection = ((_a = selectedElement.textContent) === null || _a === void 0 ? void 0 : _a.trim()) ===
-            ((_b = matchingParent === null || matchingParent === void 0 ? void 0 : matchingParent.textContent) === null || _b === void 0 ? void 0 : _b.trim());
+        const isMatchingSelection = ((_b = selectedElement.textContent) === null || _b === void 0 ? void 0 : _b.trim()) ===
+            ((_c = matchingParent === null || matchingParent === void 0 ? void 0 : matchingParent.textContent) === null || _c === void 0 ? void 0 : _c.trim());
         const matchingChildren = selectedElement.querySelectorAll(tagName);
         if (matchingChildren.length > 0) {
             Array.from(matchingChildren).forEach((element) => {
-                this.DOMManager.removeElement(element);
+                var _a;
+                (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.removeElement(element);
             });
         }
         if (matchingParent && isMatchingSelection) {
-            this.DOMManager.removeElement(matchingParent);
-            this.TypingManager.selectAllTextInSelectedElement();
+            (_d = this.DOMManager) === null || _d === void 0 ? void 0 : _d.removeElement(matchingParent);
+            (_e = this.TypingManager) === null || _e === void 0 ? void 0 : _e.selectAllTextInSelectedElement();
         }
         if (styleKey) {
             const closestStyledElement = selectedElement.closest(`${tagName}`);
@@ -260,5 +296,12 @@ export class FormatManager {
         if (tagName === "i") {
             this.unapplyFormat("em");
         }
+    }
+    updateCurrentStyles(block) {
+        const detectedStyles = this.getStyle();
+        // Update `currentStyles` with the detected styles
+        this.currentStyles = Object.assign(Object.assign({}, this.currentStyles), detectedStyles);
+        // Optionally, emit a high-level styleChange event for external listeners
+        this.emit(EVENTS.styleChange, block);
     }
 }

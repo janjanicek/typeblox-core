@@ -26,15 +26,15 @@ HTMLString: content,
 onUpdate: onChange,
 });
 
-console.log(TypeBoxEditor.getBlocks()); // To see instances of blocks
+console.log(TypeBoxEditor.blox().getBlox()); // To see instances of blocks
 
 // Examples of operations
 
-TypeBoxEditor.getCurrentBlock()?.toggleBold(); //toggles the bold style on the selection text
+TypeBoxEditor.blox().getCurrentBlock()?.toggleBold(); //toggles the bold style on the selection text
 
-TypeBoxEditor.getCurrentBlock()?.toggleItalic(); //toggles the bold style on the selection
+TypeBoxEditor.blox().getCurrentBlock()?.toggleItalic(); //toggles the bold style on the selection
 
-TypeBoxEditor.getCurrentBlock()?.toggleType("headline1"); //change the type of the block to h1
+TypeBoxEditor.blox().getCurrentBlock()?.toggleType("headline1"); //change the type of the block to h1
 
 TypeBoxEditor.format().clearFormat(); //clears the text style
 

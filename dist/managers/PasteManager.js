@@ -1,9 +1,17 @@
 export class PasteManager {
-    constructor(DOMManager) {
+    constructor(initialDOMManager) {
+        this.DOMManager = null;
+        if (initialDOMManager) {
+            this.DOMManager = initialDOMManager;
+        }
+    }
+    setDependencies(DOMManager) {
         this.DOMManager = DOMManager;
     }
     pasteContent(e) {
         var _a, _b;
+        if (!this.DOMManager)
+            return;
         e.preventDefault(); // Prevent default paste behavior
         // Get the pasted HTML or plain text
         const pastedHTML = ((_a = e.clipboardData) === null || _a === void 0 ? void 0 : _a.getData("text/html")) ||

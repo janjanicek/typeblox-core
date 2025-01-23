@@ -1,7 +1,7 @@
 import { BlockType } from "../types";
 import { EventEmitter } from "./EventEmitter";
 import { TypingManager } from "../managers/TypingManager";
-import { FormatManager } from "../managers/FormatManager";
+import { StyleManager } from "../managers/StyleManager";
 import { PasteManager } from "../managers/PasteManager";
 interface BloxProps {
     id: string;
@@ -9,8 +9,11 @@ interface BloxProps {
     type: BlockType;
     onUpdate: Function;
     TypingManager: TypingManager;
-    FormatManager: FormatManager;
+    StyleManager: StyleManager;
     PasteManager: PasteManager;
+    style?: string | null;
+    classes?: string | null;
+    attributes?: string | null;
 }
 export declare class Blox extends EventEmitter {
     id: string;
@@ -19,9 +22,12 @@ export declare class Blox extends EventEmitter {
     onUpdate: Function;
     type: BlockType;
     TypingManager: TypingManager;
-    FormatManager: FormatManager;
+    StyleManager: StyleManager;
     PasteManager: PasteManager;
-    constructor({ onUpdate, id, type, content, TypingManager, FormatManager, PasteManager, }: BloxProps);
+    styles: string;
+    classes: string;
+    attributes: string;
+    constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, PasteManager, style, classes, attributes, }: BloxProps);
     getContentElement(): HTMLElement | null;
     updateContent: () => void;
     getContent: () => string;
@@ -37,5 +43,22 @@ export declare class Blox extends EventEmitter {
     applyStyle(tagName: string, style: Record<string, string>): void;
     toggleType(newType: BlockType): void;
     pasteContent(e: ClipboardEvent): void;
+    getStyles(): Record<string, string>;
+    setStyle(property: string, value: string): void;
+    setStyles(styles: Record<string, string>): void;
+    removeStyle(property: string): void;
+    clearStyles(): void;
+    getClasses(): string[];
+    addClass(className: string): void;
+    removeClass(className: string): void;
+    hasClass(className: string): boolean;
+    clearClasses(): void;
+    toggleStyle(property: string, value: string): void;
+    toggleClass(className: string): void;
+    getAttributes(): Record<string, string>;
+    setAttribute(attribute: string, value: string): void;
+    setAttributes(attributes: Record<string, string>): void;
+    removeAttribute(attribute: string): void;
+    clearAttributes(): void;
 }
 export {};

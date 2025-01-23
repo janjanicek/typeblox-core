@@ -28,11 +28,11 @@ export class HistoryManager {
   }
 
   // Redo: Move the last redo state to the undo stack and return it
-  redo(currentState: string): string | null {
+  redo(): string | null {
     if (this.redoStack.length === 0) return null;
 
     const nextState = this.redoStack.pop()!;
-    this.undoStack.push(currentState);
+    this.undoStack.push(nextState);
     return nextState;
   }
 }
