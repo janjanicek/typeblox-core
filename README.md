@@ -48,4 +48,4 @@ TypeBoxEditor.format().clearFormat(); //clears the text style
 
 ## License
 
-This package is licensed under the MIT License.
+This package is licensed under Apache License 2.0 + Commons Clause. See the License file.

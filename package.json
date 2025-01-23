@@ -1,6 +1,6 @@
 {
   "name": "@typeblox/core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Headless rich block-based WYSIWYG editor",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
