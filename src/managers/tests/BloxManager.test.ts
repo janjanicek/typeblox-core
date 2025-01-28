@@ -7,6 +7,13 @@ import { Blox } from "../../classes/Blox";
 import { HistoryManager } from "../HistoryManager";
 import { BLOCK_TYPES } from "../../constants";
 
+const createMockBlockElement = (id: string, innerHTML: string) => {
+  const element = document.createElement("div");
+  element.id = id;
+  element.innerHTML = innerHTML;
+  return element;
+};
+
 describe("BloxManager", () => {
   let bloxManager: BloxManager;
   let mockOnChange: jest.Mock;
@@ -250,7 +257,7 @@ describe("BloxManager", () => {
   describe("split", () => {
     beforeEach(() => {
       bloxManager.setBlox([
-        createMockBlox("1", "aaabbbb"), // First block
+        createMockBlox("1", "<b>aaa</b>bbbb"), // First block
       ]);
     });
 
@@ -259,22 +266,40 @@ describe("BloxManager", () => {
     });
 
     it("should split the block into two blocks at the cursor position", () => {
-      // Mock DOM selection to simulate the cursor position after "aaa"
-      window.getSelection = jest.fn().mockReturnValue({
+      // Create a mock HTMLElement with initial content
+      const mockBlockElement = document.createElement("div");
+      mockBlockElement.innerHTML = "<b>aaa</b>bbbb";
+
+      // Mock DOMManager.getBlockElementById to return the mockBlockElement
+      mockDOMManager.getBlockElementById.mockReturnValue(mockBlockElement);
+
+      // Mock the selection and range to simulate the cursor after "aaa"
+      const mockRange = document.createRange();
+      const boldElement = mockBlockElement.querySelector("b");
+      if (boldElement) {
+        mockRange.setStartAfter(boldElement);
+        mockRange.collapse(true);
+      }
+
+      const mockSelection = {
         rangeCount: 1,
-        getRangeAt: jest.fn().mockReturnValue({
-          startOffset: 3,
-        }),
-      });
+        getRangeAt: jest.fn().mockReturnValue(mockRange),
+      };
 
-      mockDOMManager.getBlockElementById.mockReturnValue({}); // Simulate block element
+      window.getSelection = jest
+        .fn()
+        .mockReturnValue(mockSelection as unknown as Selection);
 
+      // Call the split function
       bloxManager.split("1");
 
-      // Check that two blocks are created
+      // After splitting, the blocks should be updated
       expect(bloxManager.getBlox()).toHaveLength(2);
-      expect(bloxManager.getBlox()[0].content).toBe("aaa");
+      expect(bloxManager.getBlox()[0].content).toBe("<b>aaa</b>");
       expect(bloxManager.getBlox()[1].content).toBe("bbbb");
+
+      // Verify that split-point was inserted and removed
+      expect(mockBlockElement.querySelector("split-point")).toBeNull();
     });
 
     it("should do nothing if the cursor is at the start of the block", () => {
@@ -293,7 +318,7 @@ describe("BloxManager", () => {
 
       // Ensure no new blocks are created
       expect(bloxManager.getBlox()).toHaveLength(1);
-      expect(bloxManager.getBlox()[0].content).toBe("aaabbbb");
+      expect(bloxManager.getBlox()[0].content).toBe("<b>aaa</b>bbbb");
     });
 
     it("should do nothing if the cursor is at the end of the block", () => {
@@ -311,7 +336,7 @@ describe("BloxManager", () => {
 
       // Ensure no new blocks are created
       expect(bloxManager.getBlox()).toHaveLength(1);
-      expect(bloxManager.getBlox()[0].content).toBe("aaabbbb");
+      expect(bloxManager.getBlox()[0].content).toBe("<b>aaa</b>bbbb");
     });
   });
 
@@ -323,7 +348,7 @@ describe("BloxManager", () => {
       bloxManager.getBlox().push(
         new Blox({
           id: "2",
-          content: "cccc",
+          content: "<b>cc</b>cc",
           type: BLOCK_TYPES.text,
           onUpdate: jest.fn(),
           TypingManager: jest.fn() as any,
@@ -335,14 +360,20 @@ describe("BloxManager", () => {
 
     afterEach(() => {
       bloxManager.setBlox([]);
+      jest.clearAllMocks();
     });
 
-    it("should merge the current block with the previous block", () => {
-      bloxManager.merge("2");
+    it("should not merge when there is no previous block", () => {
+      const mockBlockElement = createMockBlockElement("1", "aaabbbb");
+      mockDOMManager.getBlockElementById.mockReturnValue(mockBlockElement);
 
-      // Check that the second block is merged into the first
-      expect(bloxManager.getBlox()).toHaveLength(1);
-      expect(bloxManager.getBlox()[0].content).toBe("aaabbbbcccc");
+      bloxManager.merge("1");
+
+      expect(bloxManager.getBlox()).toHaveLength(2);
+      expect(bloxManager.getBlox()[0].content).toBe("aaabbbb");
+      expect(bloxManager.getBlox()[1].content).toBe("<b>cc</b>cc");
+
+      expect(mockDOMManager.focusBlock).not.toHaveBeenCalled();
     });
 
     it("should do nothing if the block is the first block", () => {
@@ -351,7 +382,59 @@ describe("BloxManager", () => {
       // Ensure no blocks are merged
       expect(bloxManager.getBlox()).toHaveLength(2);
       expect(bloxManager.getBlox()[0].content).toBe("aaabbbb");
-      expect(bloxManager.getBlox()[1].content).toBe("cccc");
+      expect(bloxManager.getBlox()[1].content).toBe("<b>cc</b>cc");
+    });
+
+    it("should merge the current block with the previous block and maintain cursor position", () => {
+      bloxManager.setBlox([
+        createMockBlox("1", "aaabbbb"), // First block
+        new Blox({
+          id: "2",
+          content: "<b>cc</b>cc",
+          type: BLOCK_TYPES.text,
+          onUpdate: jest.fn(),
+          TypingManager: jest.fn() as any,
+          StyleManager: jest.fn() as any,
+          PasteManager: jest.fn() as any,
+        }),
+      ]);
+
+      const mockPreviousBlockElement = createMockBlockElement("1", "aaabbbb");
+      const mockCurrentBlockElement = createMockBlockElement(
+        "2",
+        "<b>cc</b>cc",
+      );
+
+      mockDOMManager.getBlockElementById.mockImplementation((id: string) => {
+        if (id === "1") return mockPreviousBlockElement;
+        if (id === "2") return mockCurrentBlockElement;
+        return null;
+      });
+
+      const mockRange = document.createRange();
+      mockRange.selectNodeContents(mockPreviousBlockElement);
+      mockRange.collapse(false); // Collapse to end of previous block
+
+      const mockSelection = {
+        removeAllRanges: jest.fn(),
+        addRange: jest.fn(),
+        rangeCount: 1,
+        getRangeAt: jest.fn().mockReturnValue(mockRange),
+      };
+
+      window.getSelection = jest
+        .fn()
+        .mockReturnValue(mockSelection as unknown as Selection);
+      jest.useFakeTimers();
+
+      bloxManager.merge("2");
+
+      jest.runAllTimers();
+
+      expect(bloxManager.getBlox()).toHaveLength(1);
+      expect(mockPreviousBlockElement.innerHTML).toBe("aaabbbb<b>cc</b>cc");
+      expect(mockSelection.removeAllRanges).toHaveBeenCalled();
+      expect(mockSelection.addRange).toHaveBeenCalledWith(expect.any(Range));
     });
   });
 });

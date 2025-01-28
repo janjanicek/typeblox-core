@@ -1,4 +1,4 @@
-export type BlockType = "text" | "code" | "image" | "headline1" | "headline2" | "headline3" | "html";
+export type BlockType = "text" | "code" | "image" | "headline1" | "headline2" | "headline3" | "html" | "numberedList" | "bulletedList";
 export interface detectedStyles {
     color: string | null;
     backgroundColor: string | null;

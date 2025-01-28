@@ -11,5 +11,8 @@ export declare class DOMManager {
     getBlockElementById: (blockId: string) => HTMLElement | null;
     getBlockElement: () => HTMLElement | null;
     focusBlock: (blockId: string, focusOnEnd?: boolean) => void;
+    focusElement: (element: HTMLElement, focusOnEnd?: boolean) => void;
     parseHTMLToBlocks: (htmlString: string) => Blox[];
+    splitElementBySelector(selector: string): void;
+    addElementAfter(selector: string): HTMLElement;
 }

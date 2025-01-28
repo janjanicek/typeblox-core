@@ -159,30 +159,24 @@ export class BloxManager extends EventEmitter {
     moveBlockUp(blockId) {
         const index = this.blocks.findIndex((block) => block.id === blockId);
         if (index <= 0) {
-            // Block is already at the top or not found
             return false;
         }
-        // Swap the block with the one above it
         [this.blocks[index - 1], this.blocks[index]] = [
             this.blocks[index],
             this.blocks[index - 1],
         ];
-        // Emit the updated blocks array
         this.emit(EVENTS.blocksChanged, [...this.blocks]);
         return true;
     }
     moveBlockDown(blockId) {
         const index = this.blocks.findIndex((block) => block.id === blockId);
         if (index === -1 || index >= this.blocks.length - 1) {
-            // Block is already at the bottom or not found
             return false;
         }
-        // Swap the block with the one below it
         [this.blocks[index], this.blocks[index + 1]] = [
             this.blocks[index + 1],
             this.blocks[index],
         ];
-        // Emit the updated blocks array
         this.emit(EVENTS.blocksChanged, [...this.blocks]);
         return true;
     }
@@ -190,52 +184,83 @@ export class BloxManager extends EventEmitter {
         var _a;
         const blockElement = (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.getBlockElementById(blockId);
         const blox = this.getBlockById(blockId);
-        if (!blockElement || !blox)
+        if (!blockElement || !blox || !(blockElement instanceof HTMLElement))
             return;
-        // Get the current selection and caret position
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0)
             return;
         const range = selection.getRangeAt(0);
-        const caretPosition = range.startOffset;
-        // Extract the block's content
-        const fullContent = blox.content || ""; // Use the content stored in the block
-        const beforeCaret = fullContent.slice(0, caretPosition).trim(); // Trim whitespace
-        const afterCaret = fullContent.slice(caretPosition).trim(); // Trim whitespace
-        // Prevent splitting if the content before or after the caret is empty or contains only <br>
-        if (!beforeCaret ||
-            !afterCaret ||
-            beforeCaret === "<br>" ||
-            afterCaret === "<br>") {
+        const splitPoint = document.createElement("split-point");
+        range.insertNode(splitPoint);
+        const splitPointElement = blockElement.querySelector("split-point");
+        if (!splitPointElement)
+            return;
+        const beforeRange = document.createRange();
+        beforeRange.setStart(blockElement, 0);
+        beforeRange.setEndBefore(splitPointElement);
+        const beforeContent = beforeRange.cloneContents();
+        const beforeCaretContainer = document.createElement("div");
+        beforeCaretContainer.appendChild(beforeContent);
+        const beforeCaret = beforeCaretContainer.innerHTML.trim();
+        const afterRange = document.createRange();
+        afterRange.setStartAfter(splitPointElement);
+        afterRange.setEnd(blockElement, blockElement.childNodes.length);
+        const afterContent = afterRange.cloneContents();
+        const afterCaretContainer = document.createElement("div");
+        afterCaretContainer.appendChild(afterContent);
+        const afterCaret = afterCaretContainer.innerHTML.trim();
+        splitPoint.remove();
+        if (!beforeCaret || !afterCaret) {
+            console.warn("Split aborted: No content before or after the caret.");
             return;
         }
         const bloxType = blox.type || BLOCK_TYPES.text;
-        // Update the current block with the content before the caret
+        blockElement.innerHTML = beforeCaret;
         blox.setContent(beforeCaret);
-        // Add a new block with the content after the caret
         const newBlockId = this.addBlockAfter(blockId, bloxType, afterCaret);
-        if (!newBlockId)
+        if (!newBlockId) {
+            console.error("Failed to create a new block after splitting");
             return;
-        // Focus the new block after a short delay
+        }
         setTimeout(() => {
             var _a;
             (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.focusBlock(newBlockId, false);
         }, 100);
     }
     merge(blockId) {
-        var _a;
+        var _a, _b, _c;
         const blockIndex = this.blocks.findIndex((block) => block.id === blockId);
         if (blockIndex <= 0)
             return; // No previous block to merge with
         const currentBlock = this.blocks[blockIndex];
         const previousBlock = this.blocks[blockIndex - 1];
-        // Merge content of the current block into the previous block
-        previousBlock.content += currentBlock.content;
-        // Remove the current block
+        const previousBlockElement = (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.getBlockElementById(previousBlock.id);
+        const currentBlockElement = (_b = this.DOMManager) === null || _b === void 0 ? void 0 : _b.getBlockElementById(currentBlock.id);
+        if (!previousBlockElement || !currentBlockElement)
+            return;
+        const markerId = `merge-marker-${Date.now()}`;
+        const marker = document.createElement("span");
+        marker.id = markerId;
+        marker.style.opacity = "0"; // Make it invisible
+        marker.style.position = "absolute"; // Prevent affecting layout
+        marker.textContent = "\u200B"; // Zero-width space to ensure it's focusable
+        previousBlockElement.appendChild(marker);
+        previousBlockElement.innerHTML += currentBlock.content;
         this.blocks.splice(blockIndex, 1);
-        // Emit blocksChanged event to update the UI
+        const updatedPreviousBlockElement = (_c = this.DOMManager) === null || _c === void 0 ? void 0 : _c.getBlockElementById(previousBlock.id);
+        const markerElement = updatedPreviousBlockElement === null || updatedPreviousBlockElement === void 0 ? void 0 : updatedPreviousBlockElement.querySelector(`#${markerId}`);
+        if (markerElement) {
+            const range = document.createRange();
+            const selection = window.getSelection();
+            range.setStartAfter(markerElement);
+            range.collapse(true);
+            if (selection) {
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+            setTimeout(() => markerElement.remove(), 50);
+        }
         this.emit(EVENTS.blocksChanged, [...this.blocks]);
-        (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.focusBlock(previousBlock.id, true);
     }
     getCurrentBlock() {
         var _a, _b;

@@ -106,6 +106,8 @@ export declare const DEFAULT_TOOLBARS: {
     headline2: string;
     headline3: string;
     html: string;
+    numberedList: string;
+    bulletedList: string;
 };
 export declare const EVENTS: {
     blocksChanged: string;

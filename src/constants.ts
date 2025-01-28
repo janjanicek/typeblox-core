@@ -28,6 +28,8 @@ export const AVAILABLE_BLOCKS: BlockType[] = [
   "headline1",
   "headline2",
   "headline3",
+  "bulletedList",
+  "numberedList",
   "html",
 ];
 
@@ -45,7 +47,7 @@ export const BLOCKS_SETTINGS = {
     defaultContent: "Heading 1",
     description: "Big section heading.",
     toolbar: "type | font | italic underline strikethrough | color",
-    icon: "h1",
+    icon: "H1",
     availableTypes: [
       "text",
       "headline1",
@@ -62,7 +64,7 @@ export const BLOCKS_SETTINGS = {
     defaultContent: "Heading 2",
     description: "Medium section heading.",
     toolbar: "type | font | italic underline strikethrough | color",
-    icon: "h2",
+    icon: "H2",
     availableTypes: [
       "text",
       "headline1",
@@ -79,7 +81,7 @@ export const BLOCKS_SETTINGS = {
     defaultContent: "Heading 3",
     description: "Small section heading.",
     toolbar: "type | font | italic underline strikethrough | color",
-    icon: "h3",
+    icon: "H3",
     availableTypes: [
       "text",
       "headline1",
@@ -96,13 +98,15 @@ export const BLOCKS_SETTINGS = {
     description: "Just start writing with a simple text.",
     defaultContent: "Write something, or press '/' for commands...",
     toolbar:
-      "type | font | bold italic underline strikethrough | align | color bgColor | viewCode",
-    icon: "alignLeft",
+      "type | font | bold [italic,underline,strikethrough] | [align] | color bgColor | viewCode",
+    icon: "AlignLeft",
     availableTypes: [
       "text",
       "headline1",
       "headline2",
       "headline3",
+      "numberedList",
+      "bulletedList",
       "code",
       "html",
     ],
@@ -112,7 +116,7 @@ export const BLOCKS_SETTINGS = {
     visibleName: "Image",
     blockName: BLOCK_TYPES.image,
     defaultContent: "",
-    icon: "photo",
+    icon: "Photo",
     description: "Upload an image or embed it via link.",
     toolbar: "replaceImage | align",
     availableTypes: ["html"],
@@ -123,7 +127,7 @@ export const BLOCKS_SETTINGS = {
     blockName: BLOCK_TYPES.code,
     defaultContent: "Write your code here...",
     toolbar: "type",
-    icon: "code",
+    icon: "Code",
     description: "Write a code snippet.",
     availableTypes: [
       "text",
@@ -142,8 +146,16 @@ export const BLOCKS_SETTINGS = {
     defaultContent: "List",
     toolbar:
       "type | font | bold italic underline strikethrough | color bgColor",
-    icon: "article",
-    availableTypes: ["numberedList", "text", "h1", "h2", "h3", "code", "html"],
+    icon: "List",
+    availableTypes: [
+      "numberedList",
+      "text",
+      "headline1",
+      "headline3",
+      "headline3",
+      "code",
+      "html",
+    ],
   },
   numberedList: {
     tag: "ol",
@@ -153,8 +165,16 @@ export const BLOCKS_SETTINGS = {
     defaultContent: "List",
     toolbar:
       "type | font | bold italic underline strikethrough | color bgColor",
-    icon: "article",
-    availableTypes: ["bulletedList", "text", "h1", "h2", "h3", "code", "html"],
+    icon: "ListNumbers",
+    availableTypes: [
+      "bulletedList",
+      "text",
+      "headline1",
+      "headline2",
+      "headline3",
+      "code",
+      "html",
+    ],
   },
   html: {
     tag: "div",
@@ -164,7 +184,7 @@ export const BLOCKS_SETTINGS = {
     defaultContent: "Write something, or press '/' for commands...",
     toolbar:
       "type | font | bold italic underline strikethrough | color bgColor | viewCode",
-    icon: "article",
+    icon: "Article",
     availableTypes: ["text", "code"],
   },
 };
@@ -177,6 +197,8 @@ export const DEFAULT_TOOLBARS = {
   headline2: BLOCKS_SETTINGS["headline2"].toolbar,
   headline3: BLOCKS_SETTINGS["headline3"].toolbar,
   html: BLOCKS_SETTINGS["html"].toolbar,
+  numberedList: BLOCKS_SETTINGS["numberedList"].toolbar,
+  bulletedList: BLOCKS_SETTINGS["bulletedList"].toolbar,
 };
 
 export const EVENTS = {

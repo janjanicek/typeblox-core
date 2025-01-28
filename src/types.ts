@@ -5,7 +5,9 @@ export type BlockType =
   | "headline1"
   | "headline2"
   | "headline3"
-  | "html";
+  | "html"
+  | "numberedList"
+  | "bulletedList";
 
 export interface detectedStyles {
   color: string | null;

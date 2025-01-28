@@ -32,6 +32,7 @@ export class TypingManager {
     }
     mergeConsecutiveStyledElements(blockElement) {
         const childNodes = Array.from(blockElement.childNodes);
+        const ignoreTags = ["LI"];
         let i = 0;
         while (i < childNodes.length - 1) {
             const currentNode = childNodes[i];
@@ -41,6 +42,12 @@ export class TypingManager {
                 nextNode.nodeType === Node.ELEMENT_NODE) {
                 const currentElement = currentNode;
                 const nextElement = nextNode;
+                // Skip elements with tag names in the ignore list
+                if (ignoreTags.includes(currentElement.tagName) ||
+                    ignoreTags.includes(nextElement.tagName)) {
+                    i++;
+                    continue;
+                }
                 // Check if both elements have the same tag and style
                 if (currentElement.tagName === nextElement.tagName &&
                     currentElement.getAttribute("style") ===
@@ -134,14 +141,46 @@ export class TypingManager {
             while (element.firstChild) {
                 parent === null || parent === void 0 ? void 0 : parent.insertBefore(element.firstChild, element);
             }
+            console.log(element);
             parent === null || parent === void 0 ? void 0 : parent.removeChild(element);
         });
         this.mergeConsecutiveStyledElements(blockElement);
     }
-    isCursorAtStart() {
+    isCursorAtStart(container = null) {
         const selection = window.getSelection();
-        return (selection &&
-            selection.rangeCount > 0 &&
-            selection.getRangeAt(0).startOffset === 0);
+        if (!selection || selection.rangeCount === 0) {
+            return false;
+        }
+        const range = selection.getRangeAt(0);
+        const targetContainer = container || range.commonAncestorContainer;
+        // If the container is a text node
+        if (targetContainer.nodeType === Node.TEXT_NODE) {
+            return range.startOffset === 0;
+        }
+        // If the container is an element, check its first child
+        let current = targetContainer.firstChild;
+        while (current && current.nodeType !== Node.TEXT_NODE) {
+            current = current.firstChild;
+        }
+        return current ? range.startOffset === 0 : true;
+    }
+    isCursorAtEnd(container = null) {
+        var _a, _b;
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+            return false;
+        }
+        const range = selection.getRangeAt(0);
+        const targetContainer = container || range.commonAncestorContainer;
+        // If the container is a text node
+        if (targetContainer.nodeType === Node.TEXT_NODE) {
+            return range.endOffset === ((_a = targetContainer.textContent) === null || _a === void 0 ? void 0 : _a.length);
+        }
+        // If the container is an element, navigate to the last child text node
+        let current = targetContainer.lastChild;
+        while (current && current.nodeType !== Node.TEXT_NODE) {
+            current = current.lastChild;
+        }
+        return current ? range.endOffset === ((_b = current.textContent) === null || _b === void 0 ? void 0 : _b.length) : true; // Assume at the end if no more content
     }
 }

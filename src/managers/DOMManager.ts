@@ -1,5 +1,5 @@
 import { Blox } from "../classes/Blox";
-import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../constants";
+import { BLOCKS_SETTINGS, BLOCK_TYPES, EVENTS } from "../constants";
 import type { BloxManager } from "./BloxManager";
 import { getAllowedAttributes } from "../utils/attributes";
 
@@ -153,6 +153,28 @@ export class DOMManager {
     }
   };
 
+  public focusElement = (element: HTMLElement, focusOnEnd: boolean = false) => {
+    if (element) {
+      (element as HTMLElement).focus();
+
+      const selection = window.getSelection();
+      const range = document.createRange();
+
+      if (focusOnEnd) {
+        // Move the cursor to the end of the block
+        range.selectNodeContents(element);
+        range.collapse(false); // Collapse the range to the end
+      } else {
+        // Move the cursor to the beginning of the block
+        range.selectNodeContents(element);
+        range.collapse(true); // Collapse the range to the start
+      }
+
+      selection?.removeAllRanges(); // Clear existing selections
+      selection?.addRange(range); // Add the new range
+    }
+  };
+
   public parseHTMLToBlocks = (htmlString: string): Blox[] => {
     if (!this.BloxManager) {
       console.warn(this, "BloxManager not initialized");
@@ -211,4 +233,90 @@ export class DOMManager {
     }
     return structure;
   };
+
+  public splitElementBySelector(selector: string): void {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      throw new Error("No selection available in the current context.");
+    }
+
+    const range = selection.getRangeAt(0);
+    const targetElement = (
+      range.startContainer.nodeType === Node.ELEMENT_NODE
+        ? (range.startContainer as Element)
+        : range.startContainer.parentElement
+    )?.closest(selector) as HTMLElement;
+    if (!targetElement) return;
+
+    const splitPoint = document.createElement("split-point");
+    range.insertNode(splitPoint);
+
+    const splitPointElement = targetElement.querySelector("split-point");
+    if (!splitPointElement) return;
+
+    const beforeRange = document.createRange();
+    beforeRange.setStart(targetElement, 0);
+    beforeRange.setEndBefore(splitPointElement);
+
+    const beforeContent = beforeRange.cloneContents();
+    const beforeContainer = document.createElement("div");
+    beforeContainer.appendChild(beforeContent);
+    const beforeHTML = beforeContainer.innerHTML.trim();
+
+    const afterRange = document.createRange();
+    afterRange.setStartAfter(splitPointElement);
+    afterRange.setEnd(targetElement, targetElement.childNodes.length);
+
+    const afterContent = afterRange.cloneContents();
+    const afterContainer = document.createElement("div");
+    afterContainer.appendChild(afterContent);
+    const afterHTML = afterContainer.innerHTML.trim();
+
+    splitPoint.remove();
+
+    if (!beforeHTML && !afterHTML) {
+      console.warn("Split aborted: No content before or after the caret.");
+      return;
+    }
+
+    targetElement.innerHTML = beforeHTML;
+    const newElement = document.createElement(
+      targetElement.tagName.toLowerCase(),
+    );
+    newElement.innerHTML = afterHTML;
+
+    targetElement.parentElement?.insertBefore(
+      newElement,
+      targetElement.nextSibling,
+    );
+
+    requestAnimationFrame(() => this.focusElement(newElement));
+  }
+
+  public addElementAfter(selector: string): HTMLElement {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      throw new Error("No selection available in the current context.");
+    }
+
+    const range = selection.getRangeAt(0);
+    const currentNode = range.commonAncestorContainer;
+
+    const parentElement =
+      currentNode?.nodeType === Node.ELEMENT_NODE
+        ? (currentNode as Element).closest(selector)
+        : currentNode?.parentElement?.closest(selector);
+
+    if (!parentElement) {
+      throw new Error(`No element found matching the selector: ${selector}`);
+    }
+
+    const newElement = document.createElement(parentElement.tagName);
+    parentElement.insertAdjacentElement("afterend", newElement);
+    newElement.innerHTML = "\u00A0";
+
+    requestAnimationFrame(() => this.focusElement(newElement));
+
+    return newElement;
+  }
 }

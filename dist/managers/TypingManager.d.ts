@@ -9,5 +9,6 @@ export declare class TypingManager {
     getCursorElement(): Node | null;
     selectAllTextInSelectedElement(): void;
     removeSelection(blockElement: HTMLElement | null): void;
-    isCursorAtStart(): boolean | null;
+    isCursorAtStart(container?: HTMLElement | null): boolean;
+    isCursorAtEnd(container?: HTMLElement | null): boolean;
 }

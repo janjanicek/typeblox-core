@@ -116,6 +116,25 @@ export class DOMManager {
                 selection === null || selection === void 0 ? void 0 : selection.addRange(range); // Add the new range
             }
         };
+        this.focusElement = (element, focusOnEnd = false) => {
+            if (element) {
+                element.focus();
+                const selection = window.getSelection();
+                const range = document.createRange();
+                if (focusOnEnd) {
+                    // Move the cursor to the end of the block
+                    range.selectNodeContents(element);
+                    range.collapse(false); // Collapse the range to the end
+                }
+                else {
+                    // Move the cursor to the beginning of the block
+                    range.selectNodeContents(element);
+                    range.collapse(true); // Collapse the range to the start
+                }
+                selection === null || selection === void 0 ? void 0 : selection.removeAllRanges(); // Clear existing selections
+                selection === null || selection === void 0 ? void 0 : selection.addRange(range); // Add the new range
+            }
+        };
         this.parseHTMLToBlocks = (htmlString) => {
             var _a;
             if (!this.BloxManager) {
@@ -173,5 +192,67 @@ export class DOMManager {
     }
     setDependencies(BloxManager) {
         this.BloxManager = BloxManager;
+    }
+    splitElementBySelector(selector) {
+        var _a, _b;
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+            throw new Error("No selection available in the current context.");
+        }
+        const range = selection.getRangeAt(0);
+        const targetElement = (_a = (range.startContainer.nodeType === Node.ELEMENT_NODE
+            ? range.startContainer
+            : range.startContainer.parentElement)) === null || _a === void 0 ? void 0 : _a.closest(selector);
+        if (!targetElement)
+            return;
+        const splitPoint = document.createElement("split-point");
+        range.insertNode(splitPoint);
+        const splitPointElement = targetElement.querySelector("split-point");
+        if (!splitPointElement)
+            return;
+        const beforeRange = document.createRange();
+        beforeRange.setStart(targetElement, 0);
+        beforeRange.setEndBefore(splitPointElement);
+        const beforeContent = beforeRange.cloneContents();
+        const beforeContainer = document.createElement("div");
+        beforeContainer.appendChild(beforeContent);
+        const beforeHTML = beforeContainer.innerHTML.trim();
+        const afterRange = document.createRange();
+        afterRange.setStartAfter(splitPointElement);
+        afterRange.setEnd(targetElement, targetElement.childNodes.length);
+        const afterContent = afterRange.cloneContents();
+        const afterContainer = document.createElement("div");
+        afterContainer.appendChild(afterContent);
+        const afterHTML = afterContainer.innerHTML.trim();
+        splitPoint.remove();
+        if (!beforeHTML && !afterHTML) {
+            console.warn("Split aborted: No content before or after the caret.");
+            return;
+        }
+        targetElement.innerHTML = beforeHTML;
+        const newElement = document.createElement(targetElement.tagName.toLowerCase());
+        newElement.innerHTML = afterHTML;
+        (_b = targetElement.parentElement) === null || _b === void 0 ? void 0 : _b.insertBefore(newElement, targetElement.nextSibling);
+        requestAnimationFrame(() => this.focusElement(newElement));
+    }
+    addElementAfter(selector) {
+        var _a;
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+            throw new Error("No selection available in the current context.");
+        }
+        const range = selection.getRangeAt(0);
+        const currentNode = range.commonAncestorContainer;
+        const parentElement = (currentNode === null || currentNode === void 0 ? void 0 : currentNode.nodeType) === Node.ELEMENT_NODE
+            ? currentNode.closest(selector)
+            : (_a = currentNode === null || currentNode === void 0 ? void 0 : currentNode.parentElement) === null || _a === void 0 ? void 0 : _a.closest(selector);
+        if (!parentElement) {
+            throw new Error(`No element found matching the selector: ${selector}`);
+        }
+        const newElement = document.createElement(parentElement.tagName);
+        parentElement.insertAdjacentElement("afterend", newElement);
+        newElement.innerHTML = "\u00A0";
+        requestAnimationFrame(() => this.focusElement(newElement));
+        return newElement;
     }
 }
