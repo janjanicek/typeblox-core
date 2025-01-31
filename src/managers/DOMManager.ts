@@ -2,18 +2,27 @@ import { Blox } from "../classes/Blox";
 import { BLOCKS_SETTINGS, BLOCK_TYPES, EVENTS } from "../constants";
 import type { BloxManager } from "./BloxManager";
 import { getAllowedAttributes } from "../utils/attributes";
+import { TypingManager } from "./TypingManager";
 
 export class DOMManager {
   private BloxManager: BloxManager | null = null;
+  private TypingManager: TypingManager | null = null;
 
-  constructor(initialBloxManager?: BloxManager) {
+  constructor(
+    initialBloxManager?: BloxManager,
+    initialTypingManager?: TypingManager,
+  ) {
     if (initialBloxManager) {
       this.BloxManager = initialBloxManager;
     }
+    if (initialTypingManager) {
+      this.TypingManager = initialTypingManager;
+    }
   }
 
-  setDependencies(BloxManager: BloxManager) {
+  setDependencies(BloxManager: BloxManager, TypingManager: TypingManager) {
     this.BloxManager = BloxManager;
+    this.TypingManager = TypingManager;
   }
 
   public removeElement = (matchingParent: Element): void => {
@@ -128,6 +137,14 @@ export class DOMManager {
     return null;
   };
 
+  public getBlockFromEvent(event: Event): Blox | null {
+    const target = event.target as HTMLElement;
+    const blockElement = target?.closest("[data-typeblox-id]") || null;
+    const blockId = (blockElement as HTMLElement)?.dataset?.typebloxId;
+    if (!blockElement || !blockId) return null;
+    return this.BloxManager?.getBlockById(blockId) || null;
+  }
+
   public focusBlock = (blockId: string, focusOnEnd: boolean = false) => {
     const newBlockElement = document.querySelector(
       `[data-typeblox-id="${blockId}"]`,
@@ -153,26 +170,43 @@ export class DOMManager {
     }
   };
 
-  public focusElement = (element: HTMLElement, focusOnEnd: boolean = false) => {
-    if (element) {
-      (element as HTMLElement).focus();
+  public focusElement = (
+    element: HTMLElement | null,
+    focusOnEnd: boolean = false,
+  ) => {
+    if (!element) return;
 
-      const selection = window.getSelection();
-      const range = document.createRange();
+    element.focus();
 
-      if (focusOnEnd) {
-        // Move the cursor to the end of the block
-        range.selectNodeContents(element);
-        range.collapse(false); // Collapse the range to the end
-      } else {
-        // Move the cursor to the beginning of the block
-        range.selectNodeContents(element);
-        range.collapse(true); // Collapse the range to the start
-      }
+    const selection = window.getSelection();
+    const range = document.createRange();
 
-      selection?.removeAllRanges(); // Clear existing selections
-      selection?.addRange(range); // Add the new range
+    // Ensure the element contains at least one valid text node
+    let targetNode: Node | null = focusOnEnd
+      ? (this.TypingManager?.getLastMeaningfulNode(element) ?? null)
+      : (this.TypingManager?.getFirstMeaningfulNode(element) ?? null);
+
+    if (!targetNode || targetNode.nodeType !== Node.TEXT_NODE) {
+      console.warn("No valid text node found for selection. Adding one.");
+
+      // If no meaningful text node exists, insert a zero-width space
+      targetNode = document.createTextNode("\u200B"); // Zero-width space
+      element.appendChild(targetNode);
     }
+
+    const textLength = targetNode.textContent?.length || 0;
+
+    // Set cursor position inside the text node
+    if (focusOnEnd) {
+      range.setStart(targetNode, textLength);
+      range.setEnd(targetNode, textLength);
+    } else {
+      range.setStart(targetNode, 0);
+      range.setEnd(targetNode, 0);
+    }
+
+    selection?.removeAllRanges();
+    selection?.addRange(range);
   };
 
   public parseHTMLToBlocks = (htmlString: string): Blox[] => {
@@ -293,7 +327,10 @@ export class DOMManager {
     requestAnimationFrame(() => this.focusElement(newElement));
   }
 
-  public addElementAfter(selector: string): HTMLElement {
+  public addElement(
+    selector: string,
+    position: "before" | "after" = "after",
+  ): HTMLElement {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
       throw new Error("No selection available in the current context.");
@@ -302,6 +339,7 @@ export class DOMManager {
     const range = selection.getRangeAt(0);
     const currentNode = range.commonAncestorContainer;
 
+    // Find the closest matching element based on the selector
     const parentElement =
       currentNode?.nodeType === Node.ELEMENT_NODE
         ? (currentNode as Element).closest(selector)
@@ -311,12 +349,32 @@ export class DOMManager {
       throw new Error(`No element found matching the selector: ${selector}`);
     }
 
+    // Create the new element with the same tag as the parent
     const newElement = document.createElement(parentElement.tagName);
-    parentElement.insertAdjacentElement("afterend", newElement);
-    newElement.innerHTML = "\u00A0";
 
+    // Insert the element before or after the matched parentElement
+    if (position === "before") {
+      parentElement.insertAdjacentElement("beforebegin", newElement);
+    } else {
+      parentElement.insertAdjacentElement("afterend", newElement);
+    }
+
+    // Ensure the new element receives focus
     requestAnimationFrame(() => this.focusElement(newElement));
 
     return newElement;
+  }
+
+  public wrapElement(
+    targetElement: HTMLElement,
+    wrapperTag: string,
+  ): HTMLElement | null {
+    if (!targetElement || !wrapperTag) return null;
+
+    const wrapper = document.createElement(wrapperTag);
+    targetElement.replaceWith(wrapper); // Replace target with the new wrapper
+    wrapper.appendChild(targetElement); // Move target inside the wrapper
+
+    return wrapper;
   }
 }

@@ -70,6 +70,7 @@ describe("DOMManager", () => {
           TypingManager: jest.fn() as any,
           StyleManager: jest.fn() as any,
           PasteManager: jest.fn() as any,
+          DOMManager: jest.fn() as any,
           style: "color: red;",
           classes: "example-class",
         }),
@@ -92,6 +93,7 @@ describe("DOMManager", () => {
           TypingManager: jest.fn() as any,
           StyleManager: jest.fn() as any,
           PasteManager: jest.fn() as any,
+          DOMManager: jest.fn() as any,
         }),
       ];
 
@@ -354,7 +356,7 @@ describe("DOMManager", () => {
         selector: "p",
         rangeStart: 5, // Cursor inside "Hello"
         expectedParentHTML:
-          '<div id="parent"><p>Hello <b>world</b></p><p>&nbsp;</p></div>',
+          '<div id="parent"><p>Hello <b>world</b></p><p></p></div>',
         shouldCallFocusElement: true,
       },
       {
@@ -378,7 +380,7 @@ describe("DOMManager", () => {
         html: `<ul id="list"><li>Item 1</li><li>Item 2</li></ul>`,
         selector: "li",
         rangeStart: 6, // Cursor inside "Item 1"
-        expectedHTML: `<ul id="list"><li>Item 1</li><li>&nbsp;</li><li>Item 2</li></ul>`,
+        expectedHTML: `<ul id="list"><li>Item 1</li><li></li><li>Item 2</li></ul>`,
         shouldCallFocusElement: true,
       },
       {
@@ -444,14 +446,18 @@ describe("DOMManager", () => {
 
         if (shouldThrowError) {
           expect(() =>
-            domManager.addElementAfter.call(context, selector),
+            domManager.addElement.call(context, selector, "after"),
           ).toThrowError();
         } else {
-          const newElement = domManager.addElementAfter.call(context, selector);
+          const newElement = domManager.addElement.call(
+            context,
+            selector,
+            "after",
+          );
 
           // Assert the new element
           expect(newElement?.tagName.toLowerCase()).toBe(selector); // Ensure it's an <li>
-          expect(newElement?.innerHTML).toBe("&nbsp;"); // Ensure it contains a non-breaking space
+          expect(newElement?.innerHTML).toBe(""); // Ensure it contains a non-breaking space
 
           // **Use expectedHTML for assertion**
           expect(listElement?.outerHTML).toBe(expectedHTML);

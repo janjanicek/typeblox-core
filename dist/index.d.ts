@@ -7,6 +7,7 @@ import { DOMManager } from "./managers/DOMManager";
 import { BloxManager } from "./managers/BloxManager";
 import { PasteManager } from "./managers/PasteManager";
 import { ExtensionsManager } from "./managers/ExtensionsManager";
+import { LinkManager } from "./managers/LinkManager";
 export interface TypeBloxInitOptions {
     elementSelector?: string;
     HTMLString: string;
@@ -22,6 +23,8 @@ declare class Typeblox extends EventEmitter {
     private BloxManager;
     private PasteManager;
     private ExtensionsManager;
+    private ShortcutsManager;
+    private LinkManager;
     onChange: onChangeFunction;
     onImageUpload: imageUploadFunction;
     private currentSelection;
@@ -35,6 +38,7 @@ declare class Typeblox extends EventEmitter {
     blox(): BloxManager;
     extensions(): ExtensionsManager;
     elements(): DOMManager;
+    link(): LinkManager;
     paste(): PasteManager;
     getBlockById(id: string | undefined): Blox | undefined;
     getBlockElementById(id: string | undefined): HTMLElement | null;

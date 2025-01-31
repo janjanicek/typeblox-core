@@ -36,6 +36,7 @@ describe("BloxManager", () => {
       TypingManager: mockTypingManager,
       StyleManager: mockFormatManager,
       PasteManager: mockPasteManager,
+      DOMManager: jest.fn() as any,
     });
   };
 
@@ -354,6 +355,7 @@ describe("BloxManager", () => {
           TypingManager: jest.fn() as any,
           StyleManager: jest.fn() as any,
           PasteManager: jest.fn() as any,
+          DOMManager: jest.fn() as any,
         }),
       );
     });
@@ -396,6 +398,7 @@ describe("BloxManager", () => {
           TypingManager: jest.fn() as any,
           StyleManager: jest.fn() as any,
           PasteManager: jest.fn() as any,
+          DOMManager: jest.fn() as any,
         }),
       ]);
 

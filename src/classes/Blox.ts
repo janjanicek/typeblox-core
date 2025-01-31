@@ -1,10 +1,12 @@
 import { BlockType } from "../types";
 import { EventEmitter } from "./EventEmitter";
-import { BLOCKS_SETTINGS, EVENTS } from "../constants";
+import { BLOCKS_SETTINGS, BLOCK_TYPES, EVENTS } from "../constants";
 import { TypingManager } from "../managers/TypingManager";
 import { StyleManager } from "../managers/StyleManager";
 import { PasteManager } from "../managers/PasteManager";
 import { convertToCamelCase } from "../utils/css";
+import { DOMManager } from "../managers/DOMManager";
+import { isEmpty } from "../utils/elements";
 
 interface BloxProps {
   id: string;
@@ -14,6 +16,7 @@ interface BloxProps {
   TypingManager: TypingManager;
   StyleManager: StyleManager;
   PasteManager: PasteManager;
+  DOMManager: DOMManager;
   style?: string | null;
   classes?: string | null;
   attributes?: string | null;
@@ -28,9 +31,11 @@ export class Blox extends EventEmitter {
   TypingManager: TypingManager;
   StyleManager: StyleManager;
   PasteManager: PasteManager;
+  DOMManager: DOMManager;
   styles: string;
   classes: string;
   attributes: string;
+  isSelected: boolean;
 
   constructor({
     onUpdate,
@@ -40,6 +45,7 @@ export class Blox extends EventEmitter {
     TypingManager,
     StyleManager: FormatManager,
     PasteManager,
+    DOMManager,
     style,
     classes,
     attributes,
@@ -50,6 +56,7 @@ export class Blox extends EventEmitter {
     this.TypingManager = TypingManager;
     this.StyleManager = FormatManager;
     this.PasteManager = PasteManager;
+    this.DOMManager = DOMManager;
     this.contentElement = this.getContentElement();
     this.onUpdate = onUpdate;
     this.type = type ?? "text";
@@ -57,6 +64,7 @@ export class Blox extends EventEmitter {
     this.styles = style ?? "";
     this.classes = classes ?? "";
     this.attributes = attributes ?? "";
+    this.isSelected = false;
   }
 
   getContentElement(): HTMLElement | null {
@@ -89,7 +97,7 @@ export class Blox extends EventEmitter {
       this.contentElement.innerHTML = this.content;
     }
 
-    this.emit(EVENTS.blocksChanged);
+    this.sendUpdateBloxEvent();
   };
 
   private executeWithCallbacks<T>(callback: () => T): T {
@@ -106,7 +114,7 @@ export class Blox extends EventEmitter {
 
   private afterToggle(): void {
     this.TypingManager.selectAllTextInSelectedElement();
-    this.emit(EVENTS.styleChange);
+    this.sendUpdateStyleEvent();
   }
 
   toggleBold(): boolean {
@@ -183,15 +191,35 @@ export class Blox extends EventEmitter {
   }
 
   toggleType(newType: BlockType): void {
-    this.type = newType === this.type ? "text" : newType;
-    this.emit(EVENTS.blocksChanged);
-    this.emit(EVENTS.styleChange);
-    setTimeout(() => this.TypingManager.selectAllTextInSelectedElement(), 50);
+    const currentType = this.type;
+    this.type = newType === currentType ? currentType : newType;
+
+    const isList = (type: BlockType) =>
+      type === BLOCK_TYPES.numberedList || type === BLOCK_TYPES.bulletedList;
+
+    if (!isList(currentType) && isList(this.type)) {
+      this.content = BLOCKS_SETTINGS[this.type].contentPattern(this.content);
+    }
+
+    const currentBlockElement = this.getContentElement();
+
+    if (
+      (currentBlockElement && isEmpty(currentBlockElement)) ||
+      this.content.trim() === "/"
+    ) {
+      this.content = "\u200B";
+    }
+
+    this.sendUpdateBloxEvent();
+    this.sendUpdateStyleEvent();
+    requestAnimationFrame(() =>
+      this.DOMManager?.focusElement(this.getContentElement()),
+    );
   }
 
   pasteContent(e: ClipboardEvent) {
     this.PasteManager.pasteContent(e);
-    this.emit(EVENTS.blocksChanged);
+    this.sendUpdateBloxEvent();
   }
 
   // Getter for styles
@@ -223,7 +251,7 @@ export class Blox extends EventEmitter {
       .map(([key, val]) => `${key}: ${val}`)
       .join("; ");
 
-    this.emit(EVENTS.styleChange);
+    this.sendUpdateStyleEvent();
   }
 
   // Setter for multiple styles
@@ -243,7 +271,7 @@ export class Blox extends EventEmitter {
       .join("; ");
 
     // Emit style change event
-    this.emit(EVENTS.styleChange);
+    this.sendUpdateStyleEvent();
   }
 
   // Remove a specific style
@@ -253,13 +281,13 @@ export class Blox extends EventEmitter {
     this.styles = Object.entries(styles)
       .map(([key, val]) => `${key}: ${val}`)
       .join("; ");
-    this.emit(EVENTS.styleChange);
+    this.sendUpdateStyleEvent();
   }
 
   // Clear all styles
   public clearStyles(): void {
     this.styles = "";
-    this.emit(EVENTS.styleChange);
+    this.sendUpdateStyleEvent();
   }
 
   // Getter for classes
@@ -272,7 +300,7 @@ export class Blox extends EventEmitter {
     const classList = new Set(this.getClasses());
     classList.add(className);
     this.classes = Array.from(classList).join(" ");
-    this.emit(EVENTS.styleChange);
+    this.sendUpdateStyleEvent();
   }
 
   // Remove a class
@@ -280,7 +308,7 @@ export class Blox extends EventEmitter {
     const classList = new Set(this.getClasses());
     classList.delete(className);
     this.classes = Array.from(classList).join(" ");
-    this.emit(EVENTS.styleChange);
+    this.sendUpdateStyleEvent();
   }
 
   // Check if a class exists
@@ -291,7 +319,7 @@ export class Blox extends EventEmitter {
   // Clear all classes
   public clearClasses(): void {
     this.classes = "";
-    this.emit(EVENTS.styleChange);
+    this.sendUpdateStyleEvent();
   }
 
   // Toggle a style
@@ -307,7 +335,7 @@ export class Blox extends EventEmitter {
       this.setStyle(property, value);
     }
 
-    this.emit(EVENTS.styleChange); // Emit the style change event
+    this.sendUpdateStyleEvent();
   }
 
   // Toggle a class
@@ -319,7 +347,7 @@ export class Blox extends EventEmitter {
       classList.add(className);
     }
     this.classes = Array.from(classList).join(" ");
-    this.emit(EVENTS.styleChange);
+    this.sendUpdateStyleEvent();
   }
 
   // Getter for attributes
@@ -348,7 +376,7 @@ export class Blox extends EventEmitter {
       .map(([key, val]) => `${key}="${val}"`)
       .join("; ");
 
-    this.emit(EVENTS.styleChange);
+    this.sendUpdateStyleEvent();
   }
 
   // Setter for multiple attributes
@@ -365,7 +393,7 @@ export class Blox extends EventEmitter {
       .map(([key, val]) => `${key}="${val}"`)
       .join("; ");
 
-    this.emit(EVENTS.styleChange);
+    this.sendUpdateStyleEvent();
   }
 
   // Remove a specific attribute
@@ -375,12 +403,25 @@ export class Blox extends EventEmitter {
     this.attributes = Object.entries(attributes)
       .map(([key, val]) => `${key}="${val}"`)
       .join("; ");
-    this.emit(EVENTS.styleChange);
+    this.sendUpdateStyleEvent();
   }
 
   // Clear all attributes
   public clearAttributes(): void {
     this.attributes = "";
+    this.sendUpdateStyleEvent();
+  }
+
+  public setIsSelected(isSelected: boolean): void {
+    this.isSelected = isSelected;
+    this.sendUpdateStyleEvent();
+  }
+
+  sendUpdateStyleEvent(): void {
     this.emit(EVENTS.styleChange);
+  }
+
+  sendUpdateBloxEvent(): void {
+    this.emit(EVENTS.blocksChanged);
   }
 }

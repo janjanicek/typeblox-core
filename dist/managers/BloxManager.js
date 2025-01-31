@@ -1,6 +1,6 @@
 import { EventEmitter } from "../classes/EventEmitter";
 import { Blox } from "../classes/Blox";
-import { BLOCK_TYPES, EVENTS } from "../constants";
+import { BLOCKS_SETTINGS, BLOCK_TYPES, EVENTS } from "../constants";
 export class BloxManager extends EventEmitter {
     constructor(onChange) {
         super();
@@ -45,7 +45,7 @@ export class BloxManager extends EventEmitter {
         }
         // Insert the new block after the found index
         this.blocks.splice(index + 1, 0, newBlock);
-        this.emit(EVENTS.blocksChanged, [...this.blocks]);
+        this.sendUpdateEvent();
         // Optionally focus the new block
         if (select) {
             setTimeout(() => { var _a; return (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.focusBlock(newBlockId, true); }, 100);
@@ -91,6 +91,16 @@ export class BloxManager extends EventEmitter {
         this.blocks = newBlox;
         this.wasCreatedByUndo = isUndo;
     }
+    isAllSelected() {
+        return this.blocks.every((b) => b.isSelected);
+    }
+    isAnySelected() {
+        return this.blocks.some((b) => b.isSelected);
+    }
+    selectAllBlox(selectAll) {
+        this.blocks.forEach((b) => (b.isSelected = selectAll));
+        this.sendUpdateEvent();
+    }
     isUndo() {
         return this.wasCreatedByUndo;
     }
@@ -118,7 +128,7 @@ export class BloxManager extends EventEmitter {
         }
         this.wasCreatedByUndo = false;
         if (!calledFromEditor)
-            this.emit(EVENTS.blocksChanged, this.getBlox());
+            this.sendUpdateEvent();
     }
     createBlox({ id, type = BLOCK_TYPES.text, content = "", style = "", classes = "", attributes = "", }) {
         if (!this.areDependenciesSet())
@@ -132,6 +142,7 @@ export class BloxManager extends EventEmitter {
             TypingManager: this.TypingManager,
             StyleManager: this.StyleManager,
             PasteManager: this.PasteManager,
+            DOMManager: this.DOMManager,
             style,
             classes,
             attributes,
@@ -153,7 +164,23 @@ export class BloxManager extends EventEmitter {
         // Remove the block from the array
         this.blocks.splice(index, 1);
         // Emit the blocksChanged event
-        this.emit(EVENTS.blocksChanged, [...this.blocks]);
+        this.sendUpdateEvent();
+        return true;
+    }
+    moveBlock(blockId, newIndex) {
+        const currentIndex = this.blocks.findIndex((block) => block.id === blockId);
+        // Prevent invalid moves
+        if (currentIndex === -1 ||
+            newIndex < 0 ||
+            newIndex >= this.blocks.length ||
+            currentIndex === newIndex) {
+            return false;
+        }
+        // Remove block from current position
+        const [movedBlock] = this.blocks.splice(currentIndex, 1);
+        // Insert block at the new index
+        this.blocks.splice(newIndex, 0, movedBlock);
+        this.sendUpdateEvent();
         return true;
     }
     moveBlockUp(blockId) {
@@ -165,7 +192,7 @@ export class BloxManager extends EventEmitter {
             this.blocks[index],
             this.blocks[index - 1],
         ];
-        this.emit(EVENTS.blocksChanged, [...this.blocks]);
+        this.sendUpdateEvent();
         return true;
     }
     moveBlockDown(blockId) {
@@ -177,7 +204,7 @@ export class BloxManager extends EventEmitter {
             this.blocks[index + 1],
             this.blocks[index],
         ];
-        this.emit(EVENTS.blocksChanged, [...this.blocks]);
+        this.sendUpdateEvent();
         return true;
     }
     split(blockId) {
@@ -227,6 +254,22 @@ export class BloxManager extends EventEmitter {
             (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.focusBlock(newBlockId, false);
         }, 100);
     }
+    getPreviousBlock(blockId) {
+        const blockIndex = this.blocks.findIndex((block) => block.id === blockId);
+        if (blockIndex <= 0)
+            return null;
+        return this.blocks[blockIndex - 1];
+    }
+    getNextBlock(blockId) {
+        const blockIndex = this.blocks.findIndex((block) => block.id === blockId);
+        if (blockIndex >= this.blocks.length)
+            return null;
+        return this.blocks[blockIndex + 1];
+    }
+    canBeMerged(currentBlock, previousBlock) {
+        return (previousBlock.type === currentBlock.type ||
+            BLOCKS_SETTINGS[previousBlock.type].availableTypes.includes(currentBlock.type));
+    }
     merge(blockId) {
         var _a, _b, _c;
         const blockIndex = this.blocks.findIndex((block) => block.id === blockId);
@@ -234,6 +277,8 @@ export class BloxManager extends EventEmitter {
             return; // No previous block to merge with
         const currentBlock = this.blocks[blockIndex];
         const previousBlock = this.blocks[blockIndex - 1];
+        if (!this.canBeMerged(currentBlock, previousBlock))
+            return;
         const previousBlockElement = (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.getBlockElementById(previousBlock.id);
         const currentBlockElement = (_b = this.DOMManager) === null || _b === void 0 ? void 0 : _b.getBlockElementById(currentBlock.id);
         if (!previousBlockElement || !currentBlockElement)
@@ -260,6 +305,9 @@ export class BloxManager extends EventEmitter {
             }
             setTimeout(() => markerElement.remove(), 50);
         }
+        this.sendUpdateEvent();
+    }
+    sendUpdateEvent() {
         this.emit(EVENTS.blocksChanged, [...this.blocks]);
     }
     getCurrentBlock() {

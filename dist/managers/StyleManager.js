@@ -6,6 +6,7 @@ export class StyleManager extends EventEmitter {
         super();
         this.TypingManager = null;
         this.DOMManager = null;
+        this.LinkManager = null;
         this.currentStyles = {
             isBold: false,
             isItalic: false,
@@ -19,6 +20,7 @@ export class StyleManager extends EventEmitter {
             isH3: false,
             isParagraph: false,
             isCode: false,
+            isLink: false,
             textAlign: "left",
         };
         this.areDependenciesSet = () => this.TypingManager && this.DOMManager;
@@ -41,10 +43,11 @@ export class StyleManager extends EventEmitter {
                     isH3: false,
                     isParagraph: false,
                     isCode: false,
+                    isLink: false,
                     textAlign: null,
                 };
                 const detectStylesOnNode = (node) => {
-                    var _a, _b;
+                    var _a, _b, _c;
                     const computedStyle = window.getComputedStyle(node);
                     const blockType = (_a = currentNode.closest("[data-typeblox-id]")) === null || _a === void 0 ? void 0 : _a.nodeName;
                     if (blockType && blockType === "H1") {
@@ -103,6 +106,10 @@ export class StyleManager extends EventEmitter {
                     if (!detectedStyles.textAlign && computedStyle.textAlign) {
                         detectedStyles.textAlign = computedStyle.textAlign;
                     }
+                    if (!detectedStyles.isLink) {
+                        detectedStyles.isLink =
+                            ((_c = this.LinkManager) === null || _c === void 0 ? void 0 : _c.findClosestAnchor()) !== null || false;
+                    }
                 };
                 if (currentNode.childNodes.length === 1 &&
                     ((_c = currentNode.firstChild) === null || _c === void 0 ? void 0 : _c.nodeType) === Node.ELEMENT_NODE) {
@@ -137,6 +144,7 @@ export class StyleManager extends EventEmitter {
                 isH3: false,
                 isParagraph: false,
                 isCode: false,
+                isLink: false,
                 textAlign: "left",
             };
         };
@@ -209,9 +217,10 @@ export class StyleManager extends EventEmitter {
         };
         this.currentStyles = this.getStyle();
     }
-    setDependencies(DOMManager, TypingManager) {
+    setDependencies(DOMManager, TypingManager, LinkManager) {
         this.DOMManager = DOMManager;
         this.TypingManager = TypingManager;
+        this.LinkManager = LinkManager;
     }
     applyFormat(tagName, style) {
         var _a, _b, _c, _d, _e;

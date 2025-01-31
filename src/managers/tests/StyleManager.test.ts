@@ -4,11 +4,13 @@
 import { StyleManager } from "../StyleManager";
 import { DOMManager } from "../DOMManager";
 import { TypingManager } from "../TypingManager";
+import { LinkManager } from "../LinkManager";
 
 describe("StyleManager", () => {
   let styleManager: StyleManager;
   let mockTypingManager: jest.Mocked<TypingManager>;
   let mockDOMManager: jest.Mocked<DOMManager>;
+  let mockLinkManager: jest.Mocked<LinkManager>;
 
   beforeEach(() => {
     // Mock TypingManager
@@ -25,9 +27,17 @@ describe("StyleManager", () => {
       removeElement: jest.fn(),
     } as unknown as jest.Mocked<DOMManager>;
 
+    mockLinkManager = {
+      findClosestAnchor: jest.fn(),
+    } as unknown as jest.Mocked<LinkManager>;
+
     // Initialize FormatManager with mocks
     styleManager = new StyleManager();
-    styleManager.setDependencies(mockDOMManager, mockTypingManager);
+    styleManager.setDependencies(
+      mockDOMManager,
+      mockTypingManager,
+      mockLinkManager,
+    );
   });
 
   describe("applyFormat", () => {
@@ -126,6 +136,7 @@ describe("StyleManager", () => {
         backgroundColor: null,
         isBold: false,
         isItalic: false,
+        isLink: false,
         isUnderline: false,
         isStrikeout: false,
         fontFamily: null,

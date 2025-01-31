@@ -1,8 +1,9 @@
 import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../constants";
 import { getAllowedAttributes } from "../utils/attributes";
 export class DOMManager {
-    constructor(initialBloxManager) {
+    constructor(initialBloxManager, initialTypingManager) {
         this.BloxManager = null;
+        this.TypingManager = null;
         this.removeElement = (matchingParent) => {
             const parentElement = matchingParent.parentElement;
             if (!parentElement) {
@@ -117,23 +118,34 @@ export class DOMManager {
             }
         };
         this.focusElement = (element, focusOnEnd = false) => {
-            if (element) {
-                element.focus();
-                const selection = window.getSelection();
-                const range = document.createRange();
-                if (focusOnEnd) {
-                    // Move the cursor to the end of the block
-                    range.selectNodeContents(element);
-                    range.collapse(false); // Collapse the range to the end
-                }
-                else {
-                    // Move the cursor to the beginning of the block
-                    range.selectNodeContents(element);
-                    range.collapse(true); // Collapse the range to the start
-                }
-                selection === null || selection === void 0 ? void 0 : selection.removeAllRanges(); // Clear existing selections
-                selection === null || selection === void 0 ? void 0 : selection.addRange(range); // Add the new range
+            var _a, _b, _c, _d, _e;
+            if (!element)
+                return;
+            element.focus();
+            const selection = window.getSelection();
+            const range = document.createRange();
+            // Ensure the element contains at least one valid text node
+            let targetNode = focusOnEnd
+                ? ((_b = (_a = this.TypingManager) === null || _a === void 0 ? void 0 : _a.getLastMeaningfulNode(element)) !== null && _b !== void 0 ? _b : null)
+                : ((_d = (_c = this.TypingManager) === null || _c === void 0 ? void 0 : _c.getFirstMeaningfulNode(element)) !== null && _d !== void 0 ? _d : null);
+            if (!targetNode || targetNode.nodeType !== Node.TEXT_NODE) {
+                console.warn("No valid text node found for selection. Adding one.");
+                // If no meaningful text node exists, insert a zero-width space
+                targetNode = document.createTextNode("\u200B"); // Zero-width space
+                element.appendChild(targetNode);
             }
+            const textLength = ((_e = targetNode.textContent) === null || _e === void 0 ? void 0 : _e.length) || 0;
+            // Set cursor position inside the text node
+            if (focusOnEnd) {
+                range.setStart(targetNode, textLength);
+                range.setEnd(targetNode, textLength);
+            }
+            else {
+                range.setStart(targetNode, 0);
+                range.setEnd(targetNode, 0);
+            }
+            selection === null || selection === void 0 ? void 0 : selection.removeAllRanges();
+            selection === null || selection === void 0 ? void 0 : selection.addRange(range);
         };
         this.parseHTMLToBlocks = (htmlString) => {
             var _a;
@@ -189,9 +201,22 @@ export class DOMManager {
         if (initialBloxManager) {
             this.BloxManager = initialBloxManager;
         }
+        if (initialTypingManager) {
+            this.TypingManager = initialTypingManager;
+        }
     }
-    setDependencies(BloxManager) {
+    setDependencies(BloxManager, TypingManager) {
         this.BloxManager = BloxManager;
+        this.TypingManager = TypingManager;
+    }
+    getBlockFromEvent(event) {
+        var _a, _b;
+        const target = event.target;
+        const blockElement = (target === null || target === void 0 ? void 0 : target.closest("[data-typeblox-id]")) || null;
+        const blockId = (_a = blockElement === null || blockElement === void 0 ? void 0 : blockElement.dataset) === null || _a === void 0 ? void 0 : _a.typebloxId;
+        if (!blockElement || !blockId)
+            return null;
+        return ((_b = this.BloxManager) === null || _b === void 0 ? void 0 : _b.getBlockById(blockId)) || null;
     }
     splitElementBySelector(selector) {
         var _a, _b;
@@ -235,7 +260,7 @@ export class DOMManager {
         (_b = targetElement.parentElement) === null || _b === void 0 ? void 0 : _b.insertBefore(newElement, targetElement.nextSibling);
         requestAnimationFrame(() => this.focusElement(newElement));
     }
-    addElementAfter(selector) {
+    addElement(selector, position = "after") {
         var _a;
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0) {
@@ -243,16 +268,32 @@ export class DOMManager {
         }
         const range = selection.getRangeAt(0);
         const currentNode = range.commonAncestorContainer;
+        // Find the closest matching element based on the selector
         const parentElement = (currentNode === null || currentNode === void 0 ? void 0 : currentNode.nodeType) === Node.ELEMENT_NODE
             ? currentNode.closest(selector)
             : (_a = currentNode === null || currentNode === void 0 ? void 0 : currentNode.parentElement) === null || _a === void 0 ? void 0 : _a.closest(selector);
         if (!parentElement) {
             throw new Error(`No element found matching the selector: ${selector}`);
         }
+        // Create the new element with the same tag as the parent
         const newElement = document.createElement(parentElement.tagName);
-        parentElement.insertAdjacentElement("afterend", newElement);
-        newElement.innerHTML = "\u00A0";
+        // Insert the element before or after the matched parentElement
+        if (position === "before") {
+            parentElement.insertAdjacentElement("beforebegin", newElement);
+        }
+        else {
+            parentElement.insertAdjacentElement("afterend", newElement);
+        }
+        // Ensure the new element receives focus
         requestAnimationFrame(() => this.focusElement(newElement));
         return newElement;
+    }
+    wrapElement(targetElement, wrapperTag) {
+        if (!targetElement || !wrapperTag)
+            return null;
+        const wrapper = document.createElement(wrapperTag);
+        targetElement.replaceWith(wrapper); // Replace target with the new wrapper
+        wrapper.appendChild(targetElement); // Move target inside the wrapper
+        return wrapper;
     }
 }

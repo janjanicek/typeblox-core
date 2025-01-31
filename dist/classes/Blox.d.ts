@@ -3,6 +3,7 @@ import { EventEmitter } from "./EventEmitter";
 import { TypingManager } from "../managers/TypingManager";
 import { StyleManager } from "../managers/StyleManager";
 import { PasteManager } from "../managers/PasteManager";
+import { DOMManager } from "../managers/DOMManager";
 interface BloxProps {
     id: string;
     content: string;
@@ -11,6 +12,7 @@ interface BloxProps {
     TypingManager: TypingManager;
     StyleManager: StyleManager;
     PasteManager: PasteManager;
+    DOMManager: DOMManager;
     style?: string | null;
     classes?: string | null;
     attributes?: string | null;
@@ -24,10 +26,12 @@ export declare class Blox extends EventEmitter {
     TypingManager: TypingManager;
     StyleManager: StyleManager;
     PasteManager: PasteManager;
+    DOMManager: DOMManager;
     styles: string;
     classes: string;
     attributes: string;
-    constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, PasteManager, style, classes, attributes, }: BloxProps);
+    isSelected: boolean;
+    constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, PasteManager, DOMManager, style, classes, attributes, }: BloxProps);
     getContentElement(): HTMLElement | null;
     updateContent: () => void;
     getContent: () => string;
@@ -60,5 +64,8 @@ export declare class Blox extends EventEmitter {
     setAttributes(attributes: Record<string, string>): void;
     removeAttribute(attribute: string): void;
     clearAttributes(): void;
+    setIsSelected(isSelected: boolean): void;
+    sendUpdateStyleEvent(): void;
+    sendUpdateBloxEvent(): void;
 }
 export {};

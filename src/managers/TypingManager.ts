@@ -1,3 +1,4 @@
+import { isEmpty } from "../utils/elements";
 import { CLASSES } from "../constants";
 
 export class TypingManager {
@@ -82,13 +83,11 @@ export class TypingManager {
   }
 
   createSelectedElement(range?: Range): void {
-    let customRange = range;
-    if (customRange) {
-      const selection = window.getSelection();
-      if (!selection || selection.rangeCount === 0) return;
-      customRange = selection.getRangeAt(0);
+    let customRange = range || window.getSelection()?.getRangeAt(0); // Get current selection if no range is provided
+
+    if (!customRange) {
+      return;
     }
-    if (!customRange) return;
 
     const wrapper = document.createElement("span");
     wrapper.className = CLASSES.selected;
@@ -117,6 +116,10 @@ export class TypingManager {
     return container.nodeType === Node.TEXT_NODE
       ? container.parentElement
       : container;
+  }
+
+  getCursorElementBySelector(selector: string): HTMLElement | null {
+    return (this.getCursorElement() as HTMLElement)?.closest(selector);
   }
 
   selectAllTextInSelectedElement(): void {
@@ -173,58 +176,148 @@ export class TypingManager {
       while (element.firstChild) {
         parent?.insertBefore(element.firstChild, element);
       }
-      console.log(element);
       parent?.removeChild(element);
     });
 
     this.mergeConsecutiveStyledElements(blockElement);
   }
 
-  isCursorAtStart(container: HTMLElement | null = null) {
+  isCursorAtStart(container: HTMLElement): boolean {
     const selection = window.getSelection();
 
     if (!selection || selection.rangeCount === 0) {
-      return false;
+      return false; // No selection or cursor available
     }
 
     const range = selection.getRangeAt(0);
-    const targetContainer = container || range.commonAncestorContainer;
+    let startNode: Node | null = range.commonAncestorContainer;
+    let startOffset = range.startOffset;
 
-    // If the container is a text node
-    if (targetContainer.nodeType === Node.TEXT_NODE) {
-      return range.startOffset === 0;
+    if (container && !container.contains(startNode)) {
+      return false; // Cursor is not inside the container
     }
 
-    // If the container is an element, check its first child
-    let current = targetContainer.firstChild;
-    while (current && current.nodeType !== Node.TEXT_NODE) {
-      current = current.firstChild;
+    if (isEmpty(container)) {
+      return true; // Empty container counts as "at the start"
     }
 
-    return current ? range.startOffset === 0 : true;
+    const firstContentNode = container
+      ? this.getFirstMeaningfulNode(container)
+      : null;
+
+    if (!firstContentNode) {
+      return false; // No meaningful content found
+    }
+
+    // Handle cases where startNode is a block-level element (like <blockquote>)
+    if (container) {
+      const childNodes = Array.from(container.childNodes);
+
+      // Check if the first child is a <br> and the cursor is after it
+      const firstChild = childNodes[0];
+      if (firstChild?.nodeName === "BR" && startOffset === 0) {
+        return false; // Cursor is after the first <br>
+      }
+
+      // Check if the cursor is after the last <br>
+      const lastChild = childNodes[childNodes.length - 1];
+      if (lastChild?.nodeName === "BR" && startNode === lastChild) {
+        return false; // Cursor is after the last <br>
+      }
+    }
+
+    // Check if the cursor is at the very start of the first meaningful content
+    return (
+      (startNode === firstContentNode || startNode === container) &&
+      startOffset === 0
+    );
   }
 
-  isCursorAtEnd(container: HTMLElement | null = null) {
+  isCursorAtEnd(container: HTMLElement): boolean {
     const selection = window.getSelection();
-
-    if (!selection || selection.rangeCount === 0) {
-      return false;
-    }
+    if (!selection || selection.rangeCount === 0) return false;
 
     const range = selection.getRangeAt(0);
-    const targetContainer = container || range.commonAncestorContainer;
+    let endNode: Node | null = range.endContainer;
+    let endOffset = range.endOffset;
 
-    // If the container is a text node
-    if (targetContainer.nodeType === Node.TEXT_NODE) {
-      return range.endOffset === targetContainer.textContent?.length;
+    if (endNode.nodeType === Node.ELEMENT_NODE) {
+      const lastTextNode = this.getLastMeaningfulNode(endNode as HTMLElement);
+      if (lastTextNode) {
+        endNode = lastTextNode;
+        endOffset = lastTextNode.textContent?.length || 0;
+      }
     }
 
-    // If the container is an element, navigate to the last child text node
-    let current = targetContainer.lastChild;
-    while (current && current.nodeType !== Node.TEXT_NODE) {
-      current = current.lastChild;
+    // const childNodes = Array.from(container.childNodes);
+    // const lastChild = childNodes[childNodes.length - 1];
+    // if (lastChild?.nodeName === "BR" && endNode === lastChild) {
+    //   return false; // Cursor is after the last <br>
+    // }
+
+    const lastNode = this.getLastMeaningfulNode(container);
+    if (!lastNode) return false;
+
+    return (
+      endNode === lastNode && endOffset === (lastNode.textContent?.length || 0)
+    );
+  }
+
+  getFirstMeaningfulNode(container: HTMLElement): Node | null {
+    const walker = document.createTreeWalker(
+      container,
+      NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+      {
+        acceptNode: (node) => {
+          if (
+            node.nodeType === Node.TEXT_NODE &&
+            node.textContent?.trim() !== ""
+          ) {
+            return NodeFilter.FILTER_ACCEPT;
+          }
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            return NodeFilter.FILTER_SKIP; // Skip elements, but process their children
+          }
+          return NodeFilter.FILTER_REJECT;
+        },
+      },
+    );
+
+    let firstNode = walker.nextNode();
+
+    while (firstNode?.nodeName === "BR") {
+      firstNode = walker.nextNode();
     }
 
-    return current ? range.endOffset === current.textContent?.length : true; // Assume at the end if no more content
+    return firstNode; // Return the first meaningful text node
+  }
+
+  getLastMeaningfulNode(container: HTMLElement): Node | null {
+    if (!container) return null;
+    const walker = document.createTreeWalker(
+      container,
+      NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+      {
+        acceptNode: (node) => {
+          if (
+            node.nodeType === Node.TEXT_NODE &&
+            node.textContent?.trim() !== ""
+          ) {
+            return NodeFilter.FILTER_ACCEPT;
+          }
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            return NodeFilter.FILTER_SKIP; // Skip elements, but process their children
+          }
+          return NodeFilter.FILTER_REJECT;
+        },
+      },
+    );
+
+    let lastNode: Node | null = null;
+    while (walker.nextNode()) {
+      lastNode = walker.currentNode;
+    }
+
+    return lastNode; // Return the last meaningful text node
   }
 }

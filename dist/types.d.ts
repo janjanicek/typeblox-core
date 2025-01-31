@@ -1,4 +1,4 @@
-export type BlockType = "text" | "code" | "image" | "headline1" | "headline2" | "headline3" | "html" | "numberedList" | "bulletedList";
+export type BlockType = "text" | "code" | "image" | "headline1" | "headline2" | "headline3" | "html" | "numberedList" | "bulletedList" | "blockquote";
 export interface detectedStyles {
     color: string | null;
     backgroundColor: string | null;
@@ -12,6 +12,7 @@ export interface detectedStyles {
     isH3: boolean;
     isParagraph: boolean;
     isCode: boolean;
+    isLink: boolean;
     textAlign: string | null;
 }
 export type CustomRange = {

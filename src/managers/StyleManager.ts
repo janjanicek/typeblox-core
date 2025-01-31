@@ -5,11 +5,14 @@ import { toCssStyle } from "../utils/css";
 import { DOMManager } from "./DOMManager";
 import { EventEmitter } from "../classes/EventEmitter";
 import type { Blox } from "../classes/Blox";
+import { LinkManager } from "./LinkManager";
 
 export class StyleManager extends EventEmitter {
   private TypingManager: TypingManager | null = null;
 
   private DOMManager: DOMManager | null = null;
+
+  private LinkManager: LinkManager | null = null;
 
   private currentStyles: detectedStyles = {
     isBold: false,
@@ -24,6 +27,7 @@ export class StyleManager extends EventEmitter {
     isH3: false,
     isParagraph: false,
     isCode: false,
+    isLink: false,
     textAlign: "left",
   };
 
@@ -32,9 +36,14 @@ export class StyleManager extends EventEmitter {
     this.currentStyles = this.getStyle();
   }
 
-  setDependencies(DOMManager: DOMManager, TypingManager: TypingManager) {
+  setDependencies(
+    DOMManager: DOMManager,
+    TypingManager: TypingManager,
+    LinkManager: LinkManager,
+  ) {
     this.DOMManager = DOMManager;
     this.TypingManager = TypingManager;
+    this.LinkManager = LinkManager;
   }
 
   private areDependenciesSet = () => this.TypingManager && this.DOMManager;
@@ -161,6 +170,7 @@ export class StyleManager extends EventEmitter {
         isH3: false,
         isParagraph: false,
         isCode: false,
+        isLink: false,
         textAlign: null as string | null,
       };
 
@@ -243,6 +253,11 @@ export class StyleManager extends EventEmitter {
         if (!detectedStyles.textAlign && computedStyle.textAlign) {
           detectedStyles.textAlign = computedStyle.textAlign;
         }
+
+        if (!detectedStyles.isLink) {
+          detectedStyles.isLink =
+            this.LinkManager?.findClosestAnchor() !== null || false;
+        }
       };
 
       if (
@@ -285,6 +300,7 @@ export class StyleManager extends EventEmitter {
       isH3: false,
       isParagraph: false,
       isCode: false,
+      isLink: false,
       textAlign: "left",
     };
   };

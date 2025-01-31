@@ -1,3 +1,4 @@
+import { isEmpty } from "../utils/elements";
 import { CLASSES } from "../constants";
 export class TypingManager {
     constructor() {
@@ -65,15 +66,11 @@ export class TypingManager {
         }
     }
     createSelectedElement(range) {
-        let customRange = range;
-        if (customRange) {
-            const selection = window.getSelection();
-            if (!selection || selection.rangeCount === 0)
-                return;
-            customRange = selection.getRangeAt(0);
-        }
-        if (!customRange)
+        var _a;
+        let customRange = range || ((_a = window.getSelection()) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)); // Get current selection if no range is provided
+        if (!customRange) {
             return;
+        }
         const wrapper = document.createElement("span");
         wrapper.className = CLASSES.selected;
         wrapper.appendChild(customRange.extractContents());
@@ -93,6 +90,10 @@ export class TypingManager {
         return container.nodeType === Node.TEXT_NODE
             ? container.parentElement
             : container;
+    }
+    getCursorElementBySelector(selector) {
+        var _a;
+        return (_a = this.getCursorElement()) === null || _a === void 0 ? void 0 : _a.closest(selector);
     }
     selectAllTextInSelectedElement() {
         let selectedElement = this.getSelectedElement();
@@ -141,46 +142,113 @@ export class TypingManager {
             while (element.firstChild) {
                 parent === null || parent === void 0 ? void 0 : parent.insertBefore(element.firstChild, element);
             }
-            console.log(element);
             parent === null || parent === void 0 ? void 0 : parent.removeChild(element);
         });
         this.mergeConsecutiveStyledElements(blockElement);
     }
-    isCursorAtStart(container = null) {
+    isCursorAtStart(container) {
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0) {
-            return false;
+            return false; // No selection or cursor available
         }
         const range = selection.getRangeAt(0);
-        const targetContainer = container || range.commonAncestorContainer;
-        // If the container is a text node
-        if (targetContainer.nodeType === Node.TEXT_NODE) {
-            return range.startOffset === 0;
+        let startNode = range.commonAncestorContainer;
+        let startOffset = range.startOffset;
+        if (container && !container.contains(startNode)) {
+            return false; // Cursor is not inside the container
         }
-        // If the container is an element, check its first child
-        let current = targetContainer.firstChild;
-        while (current && current.nodeType !== Node.TEXT_NODE) {
-            current = current.firstChild;
+        if (isEmpty(container)) {
+            return true; // Empty container counts as "at the start"
         }
-        return current ? range.startOffset === 0 : true;
+        const firstContentNode = container
+            ? this.getFirstMeaningfulNode(container)
+            : null;
+        if (!firstContentNode) {
+            return false; // No meaningful content found
+        }
+        // Handle cases where startNode is a block-level element (like <blockquote>)
+        if (container) {
+            const childNodes = Array.from(container.childNodes);
+            // Check if the first child is a <br> and the cursor is after it
+            const firstChild = childNodes[0];
+            if ((firstChild === null || firstChild === void 0 ? void 0 : firstChild.nodeName) === "BR" && startOffset === 0) {
+                return false; // Cursor is after the first <br>
+            }
+            // Check if the cursor is after the last <br>
+            const lastChild = childNodes[childNodes.length - 1];
+            if ((lastChild === null || lastChild === void 0 ? void 0 : lastChild.nodeName) === "BR" && startNode === lastChild) {
+                return false; // Cursor is after the last <br>
+            }
+        }
+        // Check if the cursor is at the very start of the first meaningful content
+        return ((startNode === firstContentNode || startNode === container) &&
+            startOffset === 0);
     }
-    isCursorAtEnd(container = null) {
+    isCursorAtEnd(container) {
         var _a, _b;
         const selection = window.getSelection();
-        if (!selection || selection.rangeCount === 0) {
+        if (!selection || selection.rangeCount === 0)
             return false;
-        }
         const range = selection.getRangeAt(0);
-        const targetContainer = container || range.commonAncestorContainer;
-        // If the container is a text node
-        if (targetContainer.nodeType === Node.TEXT_NODE) {
-            return range.endOffset === ((_a = targetContainer.textContent) === null || _a === void 0 ? void 0 : _a.length);
+        let endNode = range.endContainer;
+        let endOffset = range.endOffset;
+        if (endNode.nodeType === Node.ELEMENT_NODE) {
+            const lastTextNode = this.getLastMeaningfulNode(endNode);
+            if (lastTextNode) {
+                endNode = lastTextNode;
+                endOffset = ((_a = lastTextNode.textContent) === null || _a === void 0 ? void 0 : _a.length) || 0;
+            }
         }
-        // If the container is an element, navigate to the last child text node
-        let current = targetContainer.lastChild;
-        while (current && current.nodeType !== Node.TEXT_NODE) {
-            current = current.lastChild;
+        // const childNodes = Array.from(container.childNodes);
+        // const lastChild = childNodes[childNodes.length - 1];
+        // if (lastChild?.nodeName === "BR" && endNode === lastChild) {
+        //   return false; // Cursor is after the last <br>
+        // }
+        const lastNode = this.getLastMeaningfulNode(container);
+        if (!lastNode)
+            return false;
+        return (endNode === lastNode && endOffset === (((_b = lastNode.textContent) === null || _b === void 0 ? void 0 : _b.length) || 0));
+    }
+    getFirstMeaningfulNode(container) {
+        const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
+            acceptNode: (node) => {
+                var _a;
+                if (node.nodeType === Node.TEXT_NODE &&
+                    ((_a = node.textContent) === null || _a === void 0 ? void 0 : _a.trim()) !== "") {
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    return NodeFilter.FILTER_SKIP; // Skip elements, but process their children
+                }
+                return NodeFilter.FILTER_REJECT;
+            },
+        });
+        let firstNode = walker.nextNode();
+        while ((firstNode === null || firstNode === void 0 ? void 0 : firstNode.nodeName) === "BR") {
+            firstNode = walker.nextNode();
         }
-        return current ? range.endOffset === ((_b = current.textContent) === null || _b === void 0 ? void 0 : _b.length) : true; // Assume at the end if no more content
+        return firstNode; // Return the first meaningful text node
+    }
+    getLastMeaningfulNode(container) {
+        if (!container)
+            return null;
+        const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
+            acceptNode: (node) => {
+                var _a;
+                if (node.nodeType === Node.TEXT_NODE &&
+                    ((_a = node.textContent) === null || _a === void 0 ? void 0 : _a.trim()) !== "") {
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    return NodeFilter.FILTER_SKIP; // Skip elements, but process their children
+                }
+                return NodeFilter.FILTER_REJECT;
+            },
+        });
+        let lastNode = null;
+        while (walker.nextNode()) {
+            lastNode = walker.currentNode;
+        }
+        return lastNode; // Return the last meaningful text node
     }
 }

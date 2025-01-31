@@ -16,6 +16,8 @@ import { DOMManager } from "./managers/DOMManager";
 import { BloxManager } from "./managers/BloxManager";
 import { PasteManager } from "./managers/PasteManager";
 import { ExtensionsManager } from "./managers/ExtensionsManager";
+import { ShortcutsManager } from "./managers/ShortcutsManager";
+import { LinkManager } from "./managers/LinkManager";
 
 export interface TypeBloxInitOptions {
   elementSelector?: string; // Optional parameter
@@ -39,6 +41,10 @@ class Typeblox extends EventEmitter {
   private PasteManager: PasteManager;
 
   private ExtensionsManager: ExtensionsManager;
+
+  private ShortcutsManager: ShortcutsManager;
+
+  private LinkManager: LinkManager;
 
   public onChange: onChangeFunction = (updatedHTMLString: string) => {
     sessionStorage.setItem("tempEditorContent", updatedHTMLString);
@@ -81,9 +87,15 @@ class Typeblox extends EventEmitter {
     this.BloxManager = new BloxManager(this.onChange); // No dependencies initially
     this.DOMManager = new DOMManager(); // No dependencies initially
     this.ExtensionsManager = new ExtensionsManager();
+    this.ShortcutsManager = new ShortcutsManager();
+    this.LinkManager = new LinkManager();
 
     this.PasteManager.setDependencies(this.DOMManager);
-    this.StyleManager.setDependencies(this.DOMManager, this.TypingManager);
+    this.StyleManager.setDependencies(
+      this.DOMManager,
+      this.TypingManager,
+      this.LinkManager,
+    );
     this.BloxManager.setDependencies(
       this.TypingManager,
       this.StyleManager,
@@ -92,7 +104,13 @@ class Typeblox extends EventEmitter {
       this.HistoryManager,
       this.onChange,
     );
-    this.DOMManager.setDependencies(this.BloxManager);
+    this.DOMManager.setDependencies(this.BloxManager, this.TypingManager);
+    this.ShortcutsManager.setDependencies(
+      this.BloxManager,
+      this.DOMManager,
+      this.TypingManager,
+      this.HistoryManager,
+    );
 
     this.BloxManager.on(EVENTS.blocksChanged, (blocks) => {
       this.emit(EVENTS.blocksChanged, blocks);
@@ -127,6 +145,7 @@ class Typeblox extends EventEmitter {
 
   public destroy(): void {
     this.blox().setBlox([]);
+    this.ShortcutsManager.unregisterShortcuts();
     this.onChange = () => {};
     removeListeners(this.detectSelection);
   }
@@ -149,6 +168,10 @@ class Typeblox extends EventEmitter {
 
   public elements(): DOMManager {
     return this.DOMManager;
+  }
+
+  public link(): LinkManager {
+    return this.LinkManager;
   }
 
   public paste(): PasteManager {

@@ -7,7 +7,8 @@ export type BlockType =
   | "headline3"
   | "html"
   | "numberedList"
-  | "bulletedList";
+  | "bulletedList"
+  | "blockquote";
 
 export interface detectedStyles {
   color: string | null;
@@ -22,6 +23,7 @@ export interface detectedStyles {
   isH3: boolean;
   isParagraph: boolean;
   isCode: boolean;
+  isLink: boolean;
   textAlign: string | null;
 }
 

@@ -11,7 +11,8 @@ export declare const BLOCKS_SETTINGS: {
         tag: string;
         visibleName: string;
         blockName: any;
-        defaultContent: string;
+        placeholder: string;
+        contentPattern: (content: string) => string;
         description: string;
         toolbar: string;
         icon: string;
@@ -21,7 +22,8 @@ export declare const BLOCKS_SETTINGS: {
         tag: string;
         visibleName: string;
         blockName: any;
-        defaultContent: string;
+        placeholder: string;
+        contentPattern: (content: string) => string;
         description: string;
         toolbar: string;
         icon: string;
@@ -31,7 +33,8 @@ export declare const BLOCKS_SETTINGS: {
         tag: string;
         visibleName: string;
         blockName: any;
-        defaultContent: string;
+        placeholder: string;
+        contentPattern: (content: string) => string;
         description: string;
         toolbar: string;
         icon: string;
@@ -42,7 +45,8 @@ export declare const BLOCKS_SETTINGS: {
         visibleName: string;
         blockName: any;
         description: string;
-        defaultContent: string;
+        placeholder: string;
+        contentPattern: (content: string) => string;
         toolbar: string;
         icon: string;
         availableTypes: string[];
@@ -51,7 +55,8 @@ export declare const BLOCKS_SETTINGS: {
         tag: string;
         visibleName: string;
         blockName: any;
-        defaultContent: string;
+        placeholder: string;
+        contentPattern: (content: string) => string;
         icon: string;
         description: string;
         toolbar: string;
@@ -61,7 +66,8 @@ export declare const BLOCKS_SETTINGS: {
         tag: string;
         visibleName: string;
         blockName: any;
-        defaultContent: string;
+        placeholder: string;
+        contentPattern: (content: string) => string;
         toolbar: string;
         icon: string;
         description: string;
@@ -72,7 +78,8 @@ export declare const BLOCKS_SETTINGS: {
         visibleName: string;
         blockName: any;
         description: string;
-        defaultContent: string;
+        placeholder: string;
+        contentPattern: (content: string) => string;
         toolbar: string;
         icon: string;
         availableTypes: string[];
@@ -82,7 +89,8 @@ export declare const BLOCKS_SETTINGS: {
         visibleName: string;
         blockName: any;
         description: string;
-        defaultContent: string;
+        placeholder: string;
+        contentPattern: (content: string) => string;
         toolbar: string;
         icon: string;
         availableTypes: string[];
@@ -92,7 +100,19 @@ export declare const BLOCKS_SETTINGS: {
         visibleName: string;
         blockName: any;
         description: string;
-        defaultContent: string;
+        placeholder: string;
+        contentPattern: (content: string) => string;
+        toolbar: string;
+        icon: string;
+        availableTypes: string[];
+    };
+    blockquote: {
+        tag: string;
+        visibleName: string;
+        blockName: any;
+        description: string;
+        placeholder: string;
+        contentPattern: (content: string) => string;
         toolbar: string;
         icon: string;
         availableTypes: string[];
@@ -108,6 +128,7 @@ export declare const DEFAULT_TOOLBARS: {
     html: string;
     numberedList: string;
     bulletedList: string;
+    blockquote: string;
 };
 export declare const EVENTS: {
     blocksChanged: string;

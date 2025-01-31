@@ -6,6 +6,7 @@ import { Blox } from "../Blox";
 import { TypingManager } from "../../managers/TypingManager";
 import { StyleManager } from "../../managers/StyleManager";
 import { PasteManager } from "../../managers/PasteManager";
+import { DOMManager } from "../../managers/DOMManager";
 import { EVENTS } from "../../constants";
 
 jest.mock("../../managers/TypingManager");
@@ -26,6 +27,7 @@ describe("Blox Class", () => {
       TypingManager: new TypingManager(),
       StyleManager: new StyleManager(),
       PasteManager: new PasteManager(),
+      DOMManager: new DOMManager(),
       style: "color: red; font-size: 16px",
       classes: "class1 class2",
     });

@@ -7,8 +7,11 @@ export declare class TypingManager {
     createSelectedElement(range?: Range): void;
     getSelectedElement(wrapper?: Element | Document): HTMLElement | null;
     getCursorElement(): Node | null;
+    getCursorElementBySelector(selector: string): HTMLElement | null;
     selectAllTextInSelectedElement(): void;
     removeSelection(blockElement: HTMLElement | null): void;
-    isCursorAtStart(container?: HTMLElement | null): boolean;
-    isCursorAtEnd(container?: HTMLElement | null): boolean;
+    isCursorAtStart(container: HTMLElement): boolean;
+    isCursorAtEnd(container: HTMLElement): boolean;
+    getFirstMeaningfulNode(container: HTMLElement): Node | null;
+    getLastMeaningfulNode(container: HTMLElement): Node | null;
 }

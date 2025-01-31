@@ -19,6 +19,7 @@ export const BLOCK_TYPES: any = {
   html: "html",
   bulletedList: "bulletedList",
   numberedList: "numberedList",
+  blockquote: "blockquote",
 };
 
 export const AVAILABLE_BLOCKS: BlockType[] = [
@@ -30,6 +31,7 @@ export const AVAILABLE_BLOCKS: BlockType[] = [
   "headline3",
   "bulletedList",
   "numberedList",
+  "blockquote",
   "html",
 ];
 
@@ -44,7 +46,8 @@ export const BLOCKS_SETTINGS = {
     tag: "h1",
     visibleName: "Headline 1",
     blockName: BLOCK_TYPES.headline1,
-    defaultContent: "Heading 1",
+    placeholder: "Heading 1",
+    contentPattern: (content: string) => `${content}`,
     description: "Big section heading.",
     toolbar: "type | font | italic underline strikethrough | color",
     icon: "H1",
@@ -55,13 +58,15 @@ export const BLOCKS_SETTINGS = {
       "headline3",
       "code",
       "html",
+      "blockquote",
     ],
   },
   headline2: {
     tag: "h2",
     visibleName: "Headline 2",
     blockName: BLOCK_TYPES.headline2,
-    defaultContent: "Heading 2",
+    placeholder: "Heading 2",
+    contentPattern: (content: string) => `${content}`,
     description: "Medium section heading.",
     toolbar: "type | font | italic underline strikethrough | color",
     icon: "H2",
@@ -72,13 +77,15 @@ export const BLOCKS_SETTINGS = {
       "headline3",
       "code",
       "html",
+      "blockquote",
     ],
   },
   headline3: {
     tag: "h3",
     visibleName: "Headline 3",
     blockName: BLOCK_TYPES.headline3,
-    defaultContent: "Heading 3",
+    placeholder: "Heading 3",
+    contentPattern: (content: string) => `${content}`,
     description: "Small section heading.",
     toolbar: "type | font | italic underline strikethrough | color",
     icon: "H3",
@@ -89,6 +96,7 @@ export const BLOCKS_SETTINGS = {
       "headline3",
       "code",
       "html",
+      "blockquote",
     ],
   },
   text: {
@@ -96,9 +104,10 @@ export const BLOCKS_SETTINGS = {
     visibleName: "Text",
     blockName: BLOCK_TYPES.text,
     description: "Just start writing with a simple text.",
-    defaultContent: "Write something, or press '/' for commands...",
+    placeholder: "Write something, or press '/' for commands...",
+    contentPattern: (content: string) => `${content}`,
     toolbar:
-      "type | font | bold [italic,underline,strikethrough] | [align] | color bgColor | viewCode",
+      "type | font | bold [italic,underline,strikethrough] | [align] | link | color bgColor | viewCode",
     icon: "AlignLeft",
     availableTypes: [
       "text",
@@ -109,13 +118,15 @@ export const BLOCKS_SETTINGS = {
       "bulletedList",
       "code",
       "html",
+      "blockquote",
     ],
   },
   image: {
     tag: "img",
     visibleName: "Image",
     blockName: BLOCK_TYPES.image,
-    defaultContent: "",
+    placeholder: "",
+    contentPattern: (content: string) => `<img src="${content}" />`,
     icon: "Photo",
     description: "Upload an image or embed it via link.",
     toolbar: "replaceImage | align",
@@ -125,7 +136,8 @@ export const BLOCKS_SETTINGS = {
     tag: "code",
     visibleName: "Code",
     blockName: BLOCK_TYPES.code,
-    defaultContent: "Write your code here...",
+    placeholder: "Write your code here...",
+    contentPattern: (content: string) => `${content}`,
     toolbar: "type",
     icon: "Code",
     description: "Write a code snippet.",
@@ -136,6 +148,7 @@ export const BLOCKS_SETTINGS = {
       "headline3",
       "code",
       "html",
+      "blockquote",
     ],
   },
   bulletedList: {
@@ -143,7 +156,8 @@ export const BLOCKS_SETTINGS = {
     visibleName: "Bulleted list",
     blockName: BLOCK_TYPES.bulletedList,
     description: "Create a simple bulleted list",
-    defaultContent: "List",
+    placeholder: "List",
+    contentPattern: (content: string) => `<li>${content}</li>`,
     toolbar:
       "type | font | bold italic underline strikethrough | color bgColor",
     icon: "List",
@@ -162,7 +176,8 @@ export const BLOCKS_SETTINGS = {
     visibleName: "Numbered list",
     blockName: BLOCK_TYPES.bulletedList,
     description: "Create a simple bulleted list",
-    defaultContent: "List",
+    placeholder: "List",
+    contentPattern: (content: string) => `<li>${content}</li>`,
     toolbar:
       "type | font | bold italic underline strikethrough | color bgColor",
     icon: "ListNumbers",
@@ -181,11 +196,24 @@ export const BLOCKS_SETTINGS = {
     visibleName: "Free content",
     blockName: BLOCK_TYPES.html,
     description: "Type any content you want",
-    defaultContent: "Write something, or press '/' for commands...",
+    placeholder: "Write something, or press '/' for commands...",
+    contentPattern: (content: string) => `${content}`,
     toolbar:
       "type | font | bold italic underline strikethrough | color bgColor | viewCode",
     icon: "Article",
-    availableTypes: ["text", "code"],
+    availableTypes: ["text", "code", "blockquote"],
+  },
+  blockquote: {
+    tag: "blockquote",
+    visibleName: "Quote",
+    blockName: BLOCK_TYPES.blockquote,
+    description: "Capture a quote",
+    placeholder: "Write your quote",
+    contentPattern: (content: string) => `${content}`,
+    toolbar:
+      "type | font | bold [italic,underline,strikethrough] | [align] | link | color bgColor | viewCode",
+    icon: "Blockquote",
+    availableTypes: ["text", "html", "code"],
   },
 };
 
@@ -199,6 +227,7 @@ export const DEFAULT_TOOLBARS = {
   html: BLOCKS_SETTINGS["html"].toolbar,
   numberedList: BLOCKS_SETTINGS["numberedList"].toolbar,
   bulletedList: BLOCKS_SETTINGS["bulletedList"].toolbar,
+  blockquote: BLOCKS_SETTINGS["blockquote"].toolbar,
 };
 
 export const EVENTS = {

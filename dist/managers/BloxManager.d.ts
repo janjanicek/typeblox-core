@@ -31,15 +31,23 @@ export declare class BloxManager extends EventEmitter {
     getBlockById(id: string | undefined): Blox | undefined;
     getBlox(): Blox[];
     setBlox(newBlox: Blox[], isUndo?: boolean): void;
+    isAllSelected(): boolean;
+    isAnySelected(): boolean;
+    selectAllBlox(selectAll: boolean): void;
     isUndo(): boolean;
     private areBloxArraysEqual;
     update(onChange: Function, providedBlocks?: Blox[], calledFromEditor?: false): void;
     createBlox({ id, type, content, style, classes, attributes, }: CreateBloxParams): Blox | null;
     removeById(blockId: string): boolean;
+    moveBlock(blockId: string, newIndex: number): boolean;
     moveBlockUp(blockId: string): boolean;
     moveBlockDown(blockId: string): boolean;
     split(blockId: string): void;
+    getPreviousBlock(blockId: string): Blox | null;
+    getNextBlock(blockId: string): Blox | null;
+    private canBeMerged;
     merge(blockId: string): void;
+    private sendUpdateEvent;
     getCurrentBlock(): Blox | null;
 }
 export {};

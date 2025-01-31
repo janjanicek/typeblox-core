@@ -1,6 +1,6 @@
 import { EventEmitter } from "../classes/EventEmitter";
 import { Blox } from "../classes/Blox";
-import { BLOCK_TYPES, EVENTS } from "../constants";
+import { BLOCKS_SETTINGS, BLOCK_TYPES, EVENTS } from "../constants";
 import { BlockType } from "../types";
 import { StyleManager } from "./StyleManager";
 import { PasteManager } from "./PasteManager";
@@ -87,7 +87,7 @@ export class BloxManager extends EventEmitter {
     // Insert the new block after the found index
     this.blocks.splice(index + 1, 0, newBlock);
 
-    this.emit(EVENTS.blocksChanged, [...this.blocks]);
+    this.sendUpdateEvent();
 
     // Optionally focus the new block
     if (select) {
@@ -152,6 +152,19 @@ export class BloxManager extends EventEmitter {
     this.wasCreatedByUndo = isUndo;
   }
 
+  public isAllSelected(): boolean {
+    return this.blocks.every((b) => b.isSelected);
+  }
+
+  public isAnySelected(): boolean {
+    return this.blocks.some((b) => b.isSelected);
+  }
+
+  public selectAllBlox(selectAll: boolean): void {
+    this.blocks.forEach((b) => (b.isSelected = selectAll));
+    this.sendUpdateEvent();
+  }
+
   public isUndo(): boolean {
     return this.wasCreatedByUndo;
   }
@@ -188,7 +201,7 @@ export class BloxManager extends EventEmitter {
     }
 
     this.wasCreatedByUndo = false;
-    if (!calledFromEditor) this.emit(EVENTS.blocksChanged, this.getBlox());
+    if (!calledFromEditor) this.sendUpdateEvent();
   }
 
   public createBlox({
@@ -211,6 +224,7 @@ export class BloxManager extends EventEmitter {
       TypingManager: this.TypingManager!,
       StyleManager: this.StyleManager!,
       PasteManager: this.PasteManager!,
+      DOMManager: this.DOMManager!,
       style,
       classes,
       attributes,
@@ -237,8 +251,31 @@ export class BloxManager extends EventEmitter {
     this.blocks.splice(index, 1);
 
     // Emit the blocksChanged event
-    this.emit(EVENTS.blocksChanged, [...this.blocks]);
+    this.sendUpdateEvent();
 
+    return true;
+  }
+
+  public moveBlock(blockId: string, newIndex: number): boolean {
+    const currentIndex = this.blocks.findIndex((block) => block.id === blockId);
+
+    // Prevent invalid moves
+    if (
+      currentIndex === -1 ||
+      newIndex < 0 ||
+      newIndex >= this.blocks.length ||
+      currentIndex === newIndex
+    ) {
+      return false;
+    }
+
+    // Remove block from current position
+    const [movedBlock] = this.blocks.splice(currentIndex, 1);
+
+    // Insert block at the new index
+    this.blocks.splice(newIndex, 0, movedBlock);
+
+    this.sendUpdateEvent();
     return true;
   }
 
@@ -254,7 +291,7 @@ export class BloxManager extends EventEmitter {
       this.blocks[index - 1],
     ];
 
-    this.emit(EVENTS.blocksChanged, [...this.blocks]);
+    this.sendUpdateEvent();
     return true;
   }
 
@@ -270,7 +307,7 @@ export class BloxManager extends EventEmitter {
       this.blocks[index],
     ];
 
-    this.emit(EVENTS.blocksChanged, [...this.blocks]);
+    this.sendUpdateEvent();
     return true;
   }
 
@@ -332,12 +369,36 @@ export class BloxManager extends EventEmitter {
     }, 100);
   }
 
+  public getPreviousBlock(blockId: string): Blox | null {
+    const blockIndex = this.blocks.findIndex((block) => block.id === blockId);
+    if (blockIndex <= 0) return null;
+    return this.blocks[blockIndex - 1];
+  }
+
+  public getNextBlock(blockId: string): Blox | null {
+    const blockIndex = this.blocks.findIndex((block) => block.id === blockId);
+    if (blockIndex >= this.blocks.length) return null;
+    return this.blocks[blockIndex + 1];
+  }
+
+  private canBeMerged(currentBlock: Blox, previousBlock: Blox): boolean {
+    return (
+      previousBlock.type === currentBlock.type ||
+      BLOCKS_SETTINGS[previousBlock.type].availableTypes.includes(
+        currentBlock.type,
+      )
+    );
+  }
+
   public merge(blockId: string): void {
     const blockIndex = this.blocks.findIndex((block) => block.id === blockId);
     if (blockIndex <= 0) return; // No previous block to merge with
 
     const currentBlock = this.blocks[blockIndex];
     const previousBlock = this.blocks[blockIndex - 1];
+
+    if (!this.canBeMerged(currentBlock, previousBlock)) return;
+
     const previousBlockElement = this.DOMManager?.getBlockElementById(
       previousBlock.id,
     );
@@ -379,6 +440,10 @@ export class BloxManager extends EventEmitter {
       setTimeout(() => markerElement.remove(), 50);
     }
 
+    this.sendUpdateEvent();
+  }
+
+  private sendUpdateEvent(): void {
     this.emit(EVENTS.blocksChanged, [...this.blocks]);
   }
 
