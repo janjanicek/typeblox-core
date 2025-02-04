@@ -16,6 +16,7 @@ export declare class DOMManager {
     focusBlock: (blockId: string, focusOnEnd?: boolean) => void;
     focusElement: (element: HTMLElement | null, focusOnEnd?: boolean) => void;
     parseHTMLToBlocks: (htmlString: string) => Blox[];
+    private getFinalElement;
     splitElementBySelector(selector: string): void;
     addElement(selector: string, position?: "before" | "after"): HTMLElement;
     wrapElement(targetElement: HTMLElement, wrapperTag: string): HTMLElement | null;

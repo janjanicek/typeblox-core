@@ -210,6 +210,8 @@ export class Blox extends EventEmitter {
       this.content = "\u200B";
     }
 
+    if (newType === BLOCK_TYPES.image) this.content = "";
+
     this.sendUpdateBloxEvent();
     this.sendUpdateStyleEvent();
     requestAnimationFrame(() =>

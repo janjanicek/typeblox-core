@@ -34,7 +34,32 @@ export class DOMManager {
                 "ul",
                 "ol",
                 "li",
+                "h1",
+                "h2",
+                "h3",
+                "h4",
+                "h5",
+                "h6",
+                "code",
+                "strong",
+                "pre",
                 "blockquote",
+                "em",
+                "s",
+                "sub",
+                "sup",
+                "mark",
+                "small",
+                "del",
+                "ins",
+                "dfn",
+                "kbd",
+                "samp",
+                "var",
+                "hr",
+                "cite",
+                "abbr",
+                "time",
             ];
             const sanitizeNode = (node) => {
                 if (!allowedTags.includes(node.tagName.toLowerCase())) {
@@ -72,8 +97,25 @@ export class DOMManager {
                     .filter((attr) => attr.length > 0)
                     .join(" ")
                 : "";
-            if (block.type === "image") {
-                return `<img src="${block.content}" style="${block.styles}" class="${block.classes}" ${attributes}/>`;
+            if (block.type === BLOCK_TYPES.image) {
+                let styles = "";
+                const alignment = block.getAttributes()["data-tbx-alignment"];
+                if (alignment) {
+                    switch (alignment) {
+                        case "center":
+                            styles = "text-align: center";
+                            break;
+                        case "right":
+                            styles = "float: right";
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                return `<p data-tbx-block="${BLOCK_TYPES.image}" style="${styles}" ><img src="${block.content}" style="${block.styles}" class="${block.classes}" ${attributes}/></p>`;
+            }
+            else if (block.type === BLOCK_TYPES.code) {
+                return `<pre data-tbx-block="${BLOCK_TYPES.code}"><code style="${block.styles}" class="${block.classes}" ${attributes}>${block.content}</code></pre>`;
             }
             else {
                 return `<${tagName} style="${block.styles}" class="${block.classes}" ${attributes}>${block.content}</${tagName}>`;
@@ -153,51 +195,50 @@ export class DOMManager {
                 console.warn(this, "BloxManager not initialized");
                 return [];
             }
-            // Parse the HTML string into a DOM Document
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlString, "text/html");
-            // Generate a unique ID generator
             let idCounter = 1;
-            const generateId = () => Date.now().toString() + (idCounter++).toString();
-            // Map each top-level element to the desired structure
-            const structure = Array.from(doc.body.children)
+            const generateId = () => `${Date.now()}${idCounter++}`;
+            const blocks = Array.from(doc.body.children)
                 .map((element) => {
-                var _a, _b, _c, _d;
+                var _a, _b, _c;
+                let predefinedBlockType = element.getAttribute("data-tbx-block") || "";
                 const tagName = element.tagName.toLowerCase();
-                // Find the corresponding block type in BLOCKS_SETTINGS
-                const blockSetting = Object.values(BLOCKS_SETTINGS).find((setting) => setting.tag === tagName);
-                if (blockSetting) {
-                    // Create a specific block if blockSetting exists
-                    return (_a = this.BloxManager) === null || _a === void 0 ? void 0 : _a.createBlox({
+                if (tagName === "img")
+                    predefinedBlockType = BLOCK_TYPES.image;
+                const predefinedTag = (_a = BLOCKS_SETTINGS[predefinedBlockType]) === null || _a === void 0 ? void 0 : _a.tag;
+                const type = predefinedTag || tagName;
+                let finalElement = this.getFinalElement(element, predefinedTag) || element;
+                const blockSetting = Object.values(BLOCKS_SETTINGS).find((setting) => setting.tag === type);
+                return blockSetting
+                    ? (_b = this.BloxManager) === null || _b === void 0 ? void 0 : _b.createBlox({
                         id: generateId(),
                         type: blockSetting.blockName,
-                        content: tagName === "img" // Special case for images
-                            ? element.getAttribute("src") || ""
-                            : (_b = element.innerHTML) === null || _b === void 0 ? void 0 : _b.trim(),
-                        style: element.getAttribute("style"),
-                        classes: element.getAttribute("class"),
-                        attributes: getAllowedAttributes(element),
+                        content: predefinedBlockType === BLOCK_TYPES.image
+                            ? finalElement.getAttribute("src") || ""
+                            : finalElement.innerHTML.trim(),
+                        style: finalElement.getAttribute("style"),
+                        classes: finalElement.getAttribute("class"),
+                        attributes: getAllowedAttributes(finalElement),
+                    })
+                    : (_c = this.BloxManager) === null || _c === void 0 ? void 0 : _c.createBlox({
+                        id: generateId(),
+                        type: BLOCK_TYPES.text,
+                        content: finalElement.innerHTML.trim(),
                     });
-                }
-                // Create a default block when no blockSetting exists
-                return (_c = this.BloxManager) === null || _c === void 0 ? void 0 : _c.createBlox({
-                    id: generateId(),
-                    type: BLOCK_TYPES.text,
-                    content: (_d = element.innerHTML) === null || _d === void 0 ? void 0 : _d.trim(),
-                });
             })
                 .filter((block) => block != null);
             if (doc.body.children.length === 0) {
                 const emptyBlock = (_a = this.BloxManager) === null || _a === void 0 ? void 0 : _a.createBlox({
                     id: generateId(),
                     type: BLOCK_TYPES.text,
-                    content: htmlString.length ? htmlString : "",
+                    content: htmlString.trim() || "",
                 });
-                if (emptyBlock)
-                    return [emptyBlock];
+                return emptyBlock ? [emptyBlock] : [];
             }
-            return structure;
+            return blocks;
         };
+        this.getFinalElement = (container, tag) => { var _a; return (_a = container.querySelector(tag)) !== null && _a !== void 0 ? _a : container; };
         if (initialBloxManager) {
             this.BloxManager = initialBloxManager;
         }

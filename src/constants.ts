@@ -49,7 +49,7 @@ export const BLOCKS_SETTINGS = {
     placeholder: "Heading 1",
     contentPattern: (content: string) => `${content}`,
     description: "Big section heading.",
-    toolbar: "type | font | italic underline strikethrough | color",
+    toolbar: "type | font | italic underline strikethrough | align | color",
     icon: "H1",
     availableTypes: [
       "text",
@@ -68,7 +68,7 @@ export const BLOCKS_SETTINGS = {
     placeholder: "Heading 2",
     contentPattern: (content: string) => `${content}`,
     description: "Medium section heading.",
-    toolbar: "type | font | italic underline strikethrough | color",
+    toolbar: "type | font | italic underline strikethrough | align | color",
     icon: "H2",
     availableTypes: [
       "text",
@@ -87,7 +87,7 @@ export const BLOCKS_SETTINGS = {
     placeholder: "Heading 3",
     contentPattern: (content: string) => `${content}`,
     description: "Small section heading.",
-    toolbar: "type | font | italic underline strikethrough | color",
+    toolbar: "type | font | italic underline strikethrough | align | color",
     icon: "H3",
     availableTypes: [
       "text",
@@ -238,7 +238,11 @@ export const EVENTS = {
 
 export const allowedAttributes = [
   "data-id",
+  "data-test",
+  "data-tbx-alignment",
+  "data-tbx-block",
   "role",
+  "id",
   "aria-label",
   "alt",
   "title",

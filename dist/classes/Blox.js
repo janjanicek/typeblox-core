@@ -145,6 +145,8 @@ export class Blox extends EventEmitter {
             this.content.trim() === "/") {
             this.content = "\u200B";
         }
+        if (newType === BLOCK_TYPES.image)
+            this.content = "";
         this.sendUpdateBloxEvent();
         this.sendUpdateStyleEvent();
         requestAnimationFrame(() => { var _a; return (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.focusElement(this.getContentElement()); });

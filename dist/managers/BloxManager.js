@@ -134,10 +134,15 @@ export class BloxManager extends EventEmitter {
         if (!this.areDependenciesSet())
             return null;
         const generateId = id || Date.now().toString();
+        const blockSettings = BLOCKS_SETTINGS[type];
+        const updatedContent = content.trim() === "/" ? "" : content;
+        const newBlockContent = updatedContent.trim() === ""
+            ? blockSettings.contentPattern(updatedContent)
+            : updatedContent;
         const block = new Blox({
             id: generateId,
             type,
-            content,
+            content: newBlockContent,
             onUpdate: this.onChange,
             TypingManager: this.TypingManager,
             StyleManager: this.StyleManager,

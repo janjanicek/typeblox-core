@@ -3,6 +3,7 @@ import { BLOCKS_SETTINGS, BLOCK_TYPES, EVENTS } from "../constants";
 import type { BloxManager } from "./BloxManager";
 import { getAllowedAttributes } from "../utils/attributes";
 import { TypingManager } from "./TypingManager";
+import { BlockType } from "src/types";
 
 export class DOMManager {
   private BloxManager: BloxManager | null = null;
@@ -61,8 +62,34 @@ export class DOMManager {
       "ul",
       "ol",
       "li",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "code",
+      "strong",
+      "pre",
       "blockquote",
+      "em",
+      "s",
+      "sub",
+      "sup",
+      "mark",
+      "small",
+      "del",
+      "ins",
+      "dfn",
+      "kbd",
+      "samp",
+      "var",
+      "hr",
+      "cite",
+      "abbr",
+      "time",
     ];
+
     const sanitizeNode = (node: Element) => {
       if (!allowedTags.includes(node.tagName.toLowerCase())) {
         // Remove disallowed tags and their content for specific tags
@@ -107,8 +134,26 @@ export class DOMManager {
               .join(" ")
           : "";
 
-        if (block.type === "image") {
-          return `<img src="${block.content}" style="${block.styles}" class="${block.classes}" ${attributes}/>`;
+        if (block.type === BLOCK_TYPES.image) {
+          let styles = "";
+          const alignment = block.getAttributes()["data-tbx-alignment"];
+
+          if (alignment) {
+            switch (alignment) {
+              case "center":
+                styles = "text-align: center";
+                break;
+              case "right":
+                styles = "float: right";
+                break;
+              default:
+                break;
+            }
+          }
+
+          return `<p data-tbx-block="${BLOCK_TYPES.image}" style="${styles}" ><img src="${block.content}" style="${block.styles}" class="${block.classes}" ${attributes}/></p>`;
+        } else if (block.type === BLOCK_TYPES.code) {
+          return `<pre data-tbx-block="${BLOCK_TYPES.code}"><code style="${block.styles}" class="${block.classes}" ${attributes}>${block.content}</code></pre>`;
         } else {
           return `<${tagName} style="${block.styles}" class="${block.classes}" ${attributes}>${block.content}</${tagName}>`;
         }
@@ -215,45 +260,49 @@ export class DOMManager {
       return [];
     }
 
-    // Parse the HTML string into a DOM Document
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlString, "text/html");
 
-    // Generate a unique ID generator
     let idCounter = 1;
-    const generateId = () => Date.now().toString() + (idCounter++).toString();
+    const generateId = () => `${Date.now()}${idCounter++}`;
 
-    // Map each top-level element to the desired structure
-    const structure = Array.from(doc.body.children)
+    const blocks: Blox[] = Array.from(doc.body.children)
       .map((element) => {
+        let predefinedBlockType = element.getAttribute("data-tbx-block") || "";
         const tagName = element.tagName.toLowerCase();
+        if (tagName === "img") predefinedBlockType = BLOCK_TYPES.image;
 
-        // Find the corresponding block type in BLOCKS_SETTINGS
+        const predefinedTag =
+          BLOCKS_SETTINGS[predefinedBlockType as BlockType]?.tag;
+        const type = predefinedTag || tagName;
+
+        let finalElement =
+          this.getFinalElement(
+            element as HTMLElement,
+            predefinedTag as BlockType,
+          ) || element;
+
         const blockSetting = Object.values(BLOCKS_SETTINGS).find(
-          (setting) => setting.tag === tagName,
+          (setting) => setting.tag === type,
         );
 
-        if (blockSetting) {
-          // Create a specific block if blockSetting exists
-          return this.BloxManager?.createBlox({
-            id: generateId(),
-            type: blockSetting.blockName,
-            content:
-              tagName === "img" // Special case for images
-                ? element.getAttribute("src") || ""
-                : element.innerHTML?.trim(),
-            style: element.getAttribute("style"),
-            classes: element.getAttribute("class"),
-            attributes: getAllowedAttributes(element as HTMLElement),
-          });
-        }
-
-        // Create a default block when no blockSetting exists
-        return this.BloxManager?.createBlox({
-          id: generateId(),
-          type: BLOCK_TYPES.text,
-          content: element.innerHTML?.trim(),
-        });
+        return blockSetting
+          ? this.BloxManager?.createBlox({
+              id: generateId(),
+              type: blockSetting.blockName,
+              content:
+                predefinedBlockType === BLOCK_TYPES.image
+                  ? finalElement.getAttribute("src") || ""
+                  : finalElement.innerHTML.trim(),
+              style: finalElement.getAttribute("style"),
+              classes: finalElement.getAttribute("class"),
+              attributes: getAllowedAttributes(finalElement as HTMLElement),
+            })
+          : this.BloxManager?.createBlox({
+              id: generateId(),
+              type: BLOCK_TYPES.text,
+              content: finalElement.innerHTML.trim(),
+            });
       })
       .filter((block): block is Blox => block != null);
 
@@ -261,12 +310,18 @@ export class DOMManager {
       const emptyBlock = this.BloxManager?.createBlox({
         id: generateId(),
         type: BLOCK_TYPES.text,
-        content: htmlString.length ? htmlString : "",
+        content: htmlString.trim() || "",
       });
-      if (emptyBlock) return [emptyBlock];
+      return emptyBlock ? [emptyBlock] : [];
     }
-    return structure;
+
+    return blocks;
   };
+
+  private getFinalElement = (
+    container: HTMLElement,
+    tag: string,
+  ): HTMLElement | null => container.querySelector(tag) ?? container;
 
   public splitElementBySelector(selector: string): void {
     const selection = window.getSelection();

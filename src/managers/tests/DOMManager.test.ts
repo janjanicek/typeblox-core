@@ -204,6 +204,46 @@ describe("DOMManager", () => {
       });
     });
 
+    it("should handle multiple attributes correctly", () => {
+      const htmlString =
+        '<p class="container" style="color: red" data-test="value" id="unique">Content</p>';
+
+      // Call the method
+      const blocks = domManager.parseHTMLToBlocks(htmlString);
+
+      // Verify createBlox was called once
+      expect(mockBloxManager.createBlox).toHaveBeenCalledTimes(1);
+
+      expect(mockBloxManager.createBlox).toHaveBeenNthCalledWith(1, {
+        id: expect.any(String),
+        type: BLOCKS_SETTINGS.text.blockName,
+        content: "Content",
+        style: "color: red",
+        classes: "container",
+        attributes: 'data-test="value"; id="unique"',
+      });
+    });
+
+    it("should handle predefined block type by attribute", () => {
+      const htmlString =
+        '<div data-tbx-block="image"><img src="image.png" data-tbx-alignment="center" style="margin: auto"/></div>';
+
+      // Call the method
+      const blocks = domManager.parseHTMLToBlocks(htmlString);
+
+      // Verify createBlox was called once
+      expect(mockBloxManager.createBlox).toHaveBeenCalledTimes(1);
+
+      expect(mockBloxManager.createBlox).toHaveBeenNthCalledWith(1, {
+        id: expect.any(String),
+        type: BLOCKS_SETTINGS.image.blockName,
+        content: "image.png",
+        attributes: 'data-tbx-alignment="center"',
+        classes: null,
+        style: "margin: auto",
+      });
+    });
+
     it("should warn if BloxManager is not initialized", () => {
       const domManagerWithoutBloxManager = new DOMManager();
       const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();

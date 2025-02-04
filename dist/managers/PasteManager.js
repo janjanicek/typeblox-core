@@ -1,15 +1,20 @@
 export class PasteManager {
-    constructor(initialDOMManager) {
+    constructor(initialDOMManager, initialBloxManager) {
         this.DOMManager = null;
+        this.BloxManager = null;
         if (initialDOMManager) {
             this.DOMManager = initialDOMManager;
         }
+        if (initialBloxManager) {
+            this.BloxManager = initialBloxManager;
+        }
     }
-    setDependencies(DOMManager) {
+    setDependencies(DOMManager, BloxManager) {
         this.DOMManager = DOMManager;
+        this.BloxManager = BloxManager;
     }
     pasteContent(e) {
-        var _a, _b;
+        var _a, _b, _c;
         if (!this.DOMManager)
             return;
         e.preventDefault(); // Prevent default paste behavior
@@ -20,6 +25,11 @@ export class PasteManager {
             return;
         // Sanitize the HTML
         const cleanHTML = this.DOMManager.sanitizeHTML(pastedHTML);
+        const newBlocks = this.DOMManager.parseHTMLToBlocks(cleanHTML);
+        if (newBlocks.length > 1) {
+            (_c = this.BloxManager) === null || _c === void 0 ? void 0 : _c.setBlox([...this.BloxManager.getBlox(), ...newBlocks]);
+            return;
+        }
         // Insert the sanitized HTML at the cursor position
         const selection = window.getSelection();
         if (selection && selection.rangeCount > 0) {

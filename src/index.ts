@@ -90,7 +90,7 @@ class Typeblox extends EventEmitter {
     this.ShortcutsManager = new ShortcutsManager();
     this.LinkManager = new LinkManager();
 
-    this.PasteManager.setDependencies(this.DOMManager);
+    this.PasteManager.setDependencies(this.DOMManager, this.BloxManager);
     this.StyleManager.setDependencies(
       this.DOMManager,
       this.TypingManager,
