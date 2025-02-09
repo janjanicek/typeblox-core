@@ -15,6 +15,7 @@ export declare class DOMManager {
     getBlockFromEvent(event: Event): Blox | null;
     focusBlock: (blockId: string, focusOnEnd?: boolean) => void;
     focusElement: (element: HTMLElement | null, focusOnEnd?: boolean) => void;
+    getCurrentDOM: () => string;
     parseHTMLToBlocks: (htmlString: string) => Blox[];
     private getFinalElement;
     splitElementBySelector(selector: string): void;

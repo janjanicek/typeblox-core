@@ -18,13 +18,13 @@ describe("BloxManager", () => {
   let bloxManager: BloxManager;
   let mockOnChange: jest.Mock;
   let mockDOMManager: any;
+  let mockHistoryManager: any;
 
   // Mocks for dependencies
   const mockOnUpdate = jest.fn();
   const mockTypingManager = {} as any;
   const mockFormatManager = {} as any;
   const mockPasteManager = {} as any;
-  let mockHistoryManager = {} as HistoryManager;
 
   // Helper function to create mock Blox instances
   const createMockBlox = (id: string, content: string): Blox => {
@@ -36,7 +36,8 @@ describe("BloxManager", () => {
       TypingManager: mockTypingManager,
       StyleManager: mockFormatManager,
       PasteManager: mockPasteManager,
-      DOMManager: jest.fn() as any,
+      DOMManager: mockDOMManager,
+      HistoryManager: mockHistoryManager,
     });
   };
 
@@ -48,7 +49,11 @@ describe("BloxManager", () => {
       focusBlock: jest.fn(),
       getBlockElementById: jest.fn(),
     };
-    mockHistoryManager = new HistoryManager();
+    mockHistoryManager = {
+      saveState: jest.fn(),
+      undo: jest.fn(),
+      redo: jest.fn(),
+    };
 
     bloxManager = new BloxManager(mockOnChange);
     bloxManager.setDependencies(
@@ -57,7 +62,6 @@ describe("BloxManager", () => {
       mockPasteManager,
       mockDOMManager,
       mockHistoryManager,
-      mockOnChange,
     );
   });
 
@@ -198,7 +202,7 @@ describe("BloxManager", () => {
     bloxManager.setBlox([block1, block2]);
 
     mockDOMManager.blocksToHTML.mockReturnValue("<p>Block 1</p><p>Block 2</p>");
-    bloxManager.update(mockOnChange);
+    bloxManager.update({ onChange: mockOnChange });
 
     expect(mockOnChange).toHaveBeenCalledWith("<p>Block 1</p><p>Block 2</p>");
   });
@@ -355,6 +359,7 @@ describe("BloxManager", () => {
           TypingManager: jest.fn() as any,
           StyleManager: jest.fn() as any,
           PasteManager: jest.fn() as any,
+          HistoryManager: jest.fn() as any,
           DOMManager: jest.fn() as any,
         }),
       );
@@ -398,6 +403,7 @@ describe("BloxManager", () => {
           TypingManager: jest.fn() as any,
           StyleManager: jest.fn() as any,
           PasteManager: jest.fn() as any,
+          HistoryManager: jest.fn() as any,
           DOMManager: jest.fn() as any,
         }),
       ]);

@@ -3,30 +3,47 @@ import { BLOCKS_SETTINGS, BLOCK_TYPES, EVENTS } from "../constants";
 import { convertToCamelCase } from "../utils/css";
 import { isEmpty } from "../utils/elements";
 export class Blox extends EventEmitter {
-    constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, PasteManager, DOMManager, style, classes, attributes, }) {
+    constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, HistoryManager, PasteManager, DOMManager, style, classes, attributes, }) {
         super();
         this.updateContent = () => {
-            var _a, _b;
-            this.contentElement = this.getContentElement();
-            this.content = (_b = (_a = this.getContentElement()) === null || _a === void 0 ? void 0 : _a.innerHTML) !== null && _b !== void 0 ? _b : "";
+            var _a;
+            const liveElement = this.getContentElement();
+            this.contentElement = liveElement;
+            if (this.type === BLOCK_TYPES.image) {
+                // Special handling for images
+                const imageURL = this.getImageURL();
+                const isSame = imageURL === this.content; // Compare the current content with the image URL
+                this.content = isSame ? this.content : imageURL;
+                return !isSame; // Return whether the content has changed
+            }
+            // Default handling for other types
+            const isSame = (liveElement === null || liveElement === void 0 ? void 0 : liveElement.innerHTML) === this.content;
+            this.content = isSame ? this.content : ((_a = liveElement === null || liveElement === void 0 ? void 0 : liveElement.innerHTML) !== null && _a !== void 0 ? _a : "");
+            return !isSame; // Return whether the content has changed
         };
         this.getContent = () => {
             this.updateContent();
             return `<${BLOCKS_SETTINGS[this.type].tag}>${this.content}</${BLOCKS_SETTINGS[this.type].tag}>`;
         };
+        this.isContentEmpty = () => /^[\s\u00A0\u200B]*$/.test(this.content);
         this.setContent = (contentString) => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(contentString, "text/html");
-            const wrapperTag = BLOCKS_SETTINGS[this.type].tag;
-            const wrapperElement = doc.body.querySelector(wrapperTag);
-            if (wrapperElement) {
-                this.content = wrapperElement.innerHTML;
+            if (this.type === BLOCK_TYPES.image) {
+                // If it's an image, set `src` instead of `innerHTML`
+                this.content = contentString; // Store the raw image URL
+                if (this.contentElement instanceof HTMLImageElement) {
+                    this.contentElement.src = this.content;
+                }
             }
             else {
-                this.content = contentString;
-            }
-            if (this.contentElement) {
-                this.contentElement.innerHTML = this.content;
+                // For other block types, parse the HTML normally
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(contentString, "text/html");
+                const wrapperTag = BLOCKS_SETTINGS[this.type].tag;
+                const wrapperElement = doc.body.querySelector(wrapperTag);
+                this.content = wrapperElement ? wrapperElement.innerHTML : contentString;
+                if (this.contentElement) {
+                    this.contentElement.innerHTML = this.content;
+                }
             }
             this.sendUpdateBloxEvent();
         };
@@ -35,6 +52,7 @@ export class Blox extends EventEmitter {
         this.TypingManager = TypingManager;
         this.StyleManager = FormatManager;
         this.PasteManager = PasteManager;
+        this.HistoryManager = HistoryManager;
         this.DOMManager = DOMManager;
         this.contentElement = this.getContentElement();
         this.onUpdate = onUpdate;
@@ -46,6 +64,11 @@ export class Blox extends EventEmitter {
     }
     getContentElement() {
         return document.querySelector(`[data-typeblox-id="${this.id}"]`);
+    }
+    getImageURL() {
+        var _a, _b;
+        return ((_b = (_a = document
+            .querySelector(`[data-typeblox-id="${this.id}"] img`)) === null || _a === void 0 ? void 0 : _a.getAttribute("src")) !== null && _b !== void 0 ? _b : "");
     }
     executeWithCallbacks(callback) {
         this.beforeToggle();
@@ -134,22 +157,33 @@ export class Blox extends EventEmitter {
         });
     }
     toggleType(newType) {
-        const currentType = this.type;
-        this.type = newType === currentType ? currentType : newType;
-        const isList = (type) => type === BLOCK_TYPES.numberedList || type === BLOCK_TYPES.bulletedList;
-        if (!isList(currentType) && isList(this.type)) {
-            this.content = BLOCKS_SETTINGS[this.type].contentPattern(this.content);
+        if (this.type === newType)
+            return; // No change needed
+        const wasList = this.isListType(this.type);
+        this.type = newType;
+        if (!wasList && this.isListType(newType)) {
+            this.content = BLOCKS_SETTINGS[newType].contentPattern(this.content);
         }
-        const currentBlockElement = this.getContentElement();
-        if ((currentBlockElement && isEmpty(currentBlockElement)) ||
-            this.content.trim() === "/") {
-            this.content = "\u200B";
+        if (this.shouldClearContent(newType)) {
+            this.content = newType === BLOCK_TYPES.code ? "\u200B" : "";
         }
-        if (newType === BLOCK_TYPES.image)
-            this.content = "";
         this.sendUpdateBloxEvent();
-        this.sendUpdateStyleEvent();
-        requestAnimationFrame(() => { var _a; return (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.focusElement(this.getContentElement()); });
+        requestAnimationFrame(() => {
+            var _a;
+            (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.focusElement(this.getContentElement());
+        });
+    }
+    // Utility methods for better readability
+    isListType(type) {
+        return (type === BLOCK_TYPES.numberedList || type === BLOCK_TYPES.bulletedList);
+    }
+    shouldClearContent(type) {
+        const contentElement = this.getContentElement();
+        return (!contentElement ||
+            isEmpty(contentElement) ||
+            this.content.trim() === "/" ||
+            type === BLOCK_TYPES.code ||
+            type === BLOCK_TYPES.image);
     }
     pasteContent(e) {
         this.PasteManager.pasteContent(e);
@@ -180,7 +214,7 @@ export class Blox extends EventEmitter {
         this.styles = Object.entries(styles)
             .map(([key, val]) => `${key}: ${val}`)
             .join("; ");
-        this.sendUpdateStyleEvent();
+        this.sendUpdateBloxEvent();
     }
     // Setter for multiple styles
     setStyles(styles) {
@@ -195,8 +229,7 @@ export class Blox extends EventEmitter {
         this.styles = Object.entries(currentStyles)
             .map(([key, value]) => `${key}: ${value}`)
             .join("; ");
-        // Emit style change event
-        this.sendUpdateStyleEvent();
+        this.sendUpdateBloxEvent();
     }
     // Remove a specific style
     removeStyle(property) {
@@ -205,12 +238,12 @@ export class Blox extends EventEmitter {
         this.styles = Object.entries(styles)
             .map(([key, val]) => `${key}: ${val}`)
             .join("; ");
-        this.sendUpdateStyleEvent();
+        this.sendUpdateBloxEvent();
     }
     // Clear all styles
     clearStyles() {
         this.styles = "";
-        this.sendUpdateStyleEvent();
+        this.sendUpdateBloxEvent();
     }
     // Getter for classes
     getClasses() {
@@ -288,7 +321,7 @@ export class Blox extends EventEmitter {
         this.attributes = Object.entries(attributes)
             .map(([key, val]) => `${key}="${val}"`)
             .join("; ");
-        this.sendUpdateStyleEvent();
+        this.sendUpdateBloxEvent();
     }
     // Setter for multiple attributes
     setAttributes(attributes) {
@@ -301,7 +334,7 @@ export class Blox extends EventEmitter {
         this.attributes = Object.entries(currentAttributes)
             .map(([key, val]) => `${key}="${val}"`)
             .join("; ");
-        this.sendUpdateStyleEvent();
+        this.sendUpdateBloxEvent();
     }
     // Remove a specific attribute
     removeAttribute(attribute) {
@@ -310,18 +343,21 @@ export class Blox extends EventEmitter {
         this.attributes = Object.entries(attributes)
             .map(([key, val]) => `${key}="${val}"`)
             .join("; ");
-        this.sendUpdateStyleEvent();
+        this.sendUpdateBloxEvent();
     }
     // Clear all attributes
     clearAttributes() {
         this.attributes = "";
-        this.sendUpdateStyleEvent();
+        this.sendUpdateBloxEvent();
     }
     setIsSelected(isSelected) {
         this.isSelected = isSelected;
-        this.sendUpdateStyleEvent();
+        this.sendUpdateBloxEvent();
     }
     sendUpdateStyleEvent() {
+        var _a;
+        this.updateContent();
+        (_a = this.HistoryManager) === null || _a === void 0 ? void 0 : _a.saveState();
         this.emit(EVENTS.styleChange);
     }
     sendUpdateBloxEvent() {

@@ -6,12 +6,14 @@ import { Blox } from "../Blox";
 import { TypingManager } from "../../managers/TypingManager";
 import { StyleManager } from "../../managers/StyleManager";
 import { PasteManager } from "../../managers/PasteManager";
+import { HistoryManager } from "../../managers/HistoryManager";
 import { DOMManager } from "../../managers/DOMManager";
 import { EVENTS } from "../../constants";
 
 jest.mock("../../managers/TypingManager");
 jest.mock("../../managers/StyleManager");
 jest.mock("../../managers/PasteManager");
+jest.mock("../../managers/HistoryManager");
 
 describe("Blox Class", () => {
   let blox: Blox;
@@ -28,6 +30,7 @@ describe("Blox Class", () => {
       StyleManager: new StyleManager(),
       PasteManager: new PasteManager(),
       DOMManager: new DOMManager(),
+      HistoryManager: new HistoryManager(),
       style: "color: red; font-size: 16px",
       classes: "class1 class2",
     });
@@ -116,7 +119,7 @@ describe("Blox Class", () => {
     test("should emit styleChange event on style updates", () => {
       const emitSpy = jest.spyOn(blox, "emit");
       blox.setStyle("color", "blue");
-      expect(emitSpy).toHaveBeenCalledWith(EVENTS.styleChange);
+      expect(emitSpy).toHaveBeenCalledWith(EVENTS.blocksChanged);
     });
 
     test("should emit styleChange event on class updates", () => {

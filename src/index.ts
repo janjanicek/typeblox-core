@@ -102,9 +102,10 @@ class Typeblox extends EventEmitter {
       this.PasteManager,
       this.DOMManager,
       this.HistoryManager,
-      this.onChange,
     );
     this.DOMManager.setDependencies(this.BloxManager, this.TypingManager);
+    this.HistoryManager.setDependencies(this.DOMManager);
+
     this.ShortcutsManager.setDependencies(
       this.BloxManager,
       this.DOMManager,
@@ -113,6 +114,7 @@ class Typeblox extends EventEmitter {
     );
 
     this.BloxManager.on(EVENTS.blocksChanged, (blocks) => {
+      console.log("Update from BloxManager");
       this.emit(EVENTS.blocksChanged, blocks);
     });
 
@@ -124,6 +126,12 @@ class Typeblox extends EventEmitter {
       this.emit(EVENTS.styleChange, block);
     });
 
+    this.HistoryManager.on(EVENTS.historyChange, (newState, isUndo) => {
+      if (newState) {
+        this.updateEditorContent(newState, isUndo);
+      }
+    });
+
     registerListeners(this.detectSelection);
   }
 
@@ -132,7 +140,10 @@ class Typeblox extends EventEmitter {
     const { HTMLString, onUpdate, onImageUpload, extensions } = options;
     if (HTMLString)
       this.blox().setBlox(this.elements().parseHTMLToBlocks(HTMLString));
-    if (onUpdate) this.onChange = onUpdate;
+    if (onUpdate) {
+      this.onChange = onUpdate;
+      this.BloxManager?.updateChange(onUpdate);
+    }
     if (onImageUpload) this.onImageUpload = this.onImageUpload;
     if (extensions) this.registerAllExtensions(extensions);
   }
@@ -176,6 +187,10 @@ class Typeblox extends EventEmitter {
 
   public paste(): PasteManager {
     return this.PasteManager;
+  }
+
+  public history(): HistoryManager {
+    return this.HistoryManager;
   }
 
   public getBlockById(id: string | undefined): Blox | undefined {
@@ -287,32 +302,13 @@ class Typeblox extends EventEmitter {
     }
   };
 
-  private getCurrentDom = () => {
-    return this.DOMManager.blocksToHTML(this.blox().getBlox());
-  };
-
-  private updateEditorContent = (
-    newContent: string,
-    isUndo: boolean = false,
-  ) => {
-    this.blox().setBlox(this.elements().parseHTMLToBlocks(newContent), isUndo);
-    this.emit(EVENTS.blocksChanged, this.blox().getBlox());
-  };
-
-  // Undo
-  public handleUndo = () => {
-    const previousState = this.HistoryManager?.undo(this.getCurrentDom());
-    if (previousState) {
-      this.updateEditorContent(previousState, true);
-    }
-  };
-
-  // Redo
-  public handleRedo = () => {
-    const nextState = this.HistoryManager?.redo();
-    if (nextState) {
-      this.updateEditorContent(nextState);
-    }
+  private updateEditorContent = (newContent?: string, isUndo?: boolean) => {
+    const isHistoryOperation = isUndo !== undefined;
+    const recoveredStructure = newContent
+      ? this.elements().parseHTMLToBlocks(newContent)
+      : this.blox().getBlox();
+    this.blox().setBlox(recoveredStructure, isHistoryOperation);
+    this.emit(EVENTS.blocksChanged, recoveredStructure);
   };
 }
 

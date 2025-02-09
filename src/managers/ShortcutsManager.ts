@@ -244,17 +244,24 @@ export class ShortcutsManager {
         (event.metaKey || event.ctrlKey) &&
         (event.key === "z" || event.key === "y")
       ) {
-        const isRedo = event.shiftKey && event.key === "z"; // Shift+Z for redo (or Y for Windows/Linux)
-        const currentBlox = this.BloxManager?.getBlox();
-        if (!currentBlox) return;
-
+        const isRedo =
+          (event.metaKey && event.key === "y") ||
+          (event.ctrlKey && event.key === "y"); // Shift+Z for redo (or Y for Windows/Linux)
         event.preventDefault();
-        const currentState = this.DOMManager?.blocksToHTML(currentBlox);
-        if (!currentState) return;
 
-        isRedo
-          ? this.HistoryManager?.redo()
-          : this.HistoryManager?.undo(currentState);
+        isRedo ? this.HistoryManager?.redo() : this.HistoryManager?.undo();
+      }
+
+      // Default styling shortcuts
+
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        (event.key === "b" || event.key === "i" || event.key === "u")
+      ) {
+        setTimeout(
+          () => this.BloxManager?.getCurrentBlock()?.sendUpdateStyleEvent(),
+          1000,
+        );
       }
     };
 

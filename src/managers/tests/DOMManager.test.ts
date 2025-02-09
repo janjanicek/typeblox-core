@@ -71,6 +71,7 @@ describe("DOMManager", () => {
           StyleManager: jest.fn() as any,
           PasteManager: jest.fn() as any,
           DOMManager: jest.fn() as any,
+          HistoryManager: jest.fn() as any,
           style: "color: red;",
           classes: "example-class",
         }),
@@ -94,6 +95,7 @@ describe("DOMManager", () => {
           StyleManager: jest.fn() as any,
           PasteManager: jest.fn() as any,
           DOMManager: jest.fn() as any,
+          HistoryManager: jest.fn() as any,
         }),
       ];
 

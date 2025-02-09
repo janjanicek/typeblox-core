@@ -1,9 +1,15 @@
-export declare class HistoryManager {
+import { EventEmitter } from "../classes/EventEmitter";
+import { DOMManager } from "./DOMManager";
+export declare class HistoryManager extends EventEmitter {
     private undoStack;
     private redoStack;
     private maxHistorySize;
-    constructor(maxHistorySize?: number);
-    saveState(state: string): void;
-    undo(currentState: string): string | null;
+    private DOMManager;
+    constructor(maxHistorySize?: number, initialDOMManager?: DOMManager);
+    setDependencies(DOMManager: DOMManager): void;
+    isUndoAvailable(): boolean;
+    isRedoAvailable(): boolean;
+    saveState(state?: string): void;
+    undo(state?: string): string | null;
     redo(): string | null;
 }

@@ -235,7 +235,7 @@ export class DOMManager {
       console.warn("No valid text node found for selection. Adding one.");
 
       // If no meaningful text node exists, insert a zero-width space
-      targetNode = document.createTextNode("\u200B"); // Zero-width space
+      targetNode = document.createTextNode(""); // Zero-width space
       element.appendChild(targetNode);
     }
 
@@ -253,6 +253,9 @@ export class DOMManager {
     selection?.removeAllRanges();
     selection?.addRange(range);
   };
+
+  public getCurrentDOM = () =>
+    this.blocksToHTML(this.BloxManager?.getBlox() ?? []);
 
   public parseHTMLToBlocks = (htmlString: string): Blox[] => {
     if (!this.BloxManager) {
@@ -304,7 +307,9 @@ export class DOMManager {
               content: finalElement.innerHTML.trim(),
             });
       })
-      .filter((block): block is Blox => block != null);
+      .filter(
+        (block): block is Blox => block != null && !block.isContentEmpty(),
+      );
 
     if (doc.body.children.length === 0) {
       const emptyBlock = this.BloxManager?.createBlox({

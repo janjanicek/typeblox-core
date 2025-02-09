@@ -17,15 +17,18 @@ export class BloxManager extends EventEmitter {
             this.onChange;
         this.onChange = onChange;
         this.blocks = [];
-        this.wasCreatedByUndo = false;
+        this.wasHistoryOperation = false;
+        this.lastUpdatedContent = "";
     }
-    setDependencies(TypingManager, FormatManager, PasteManager, DOMManager, HistoryManager, onChange) {
+    updateChange(onChange) {
+        this.onChange = onChange;
+    }
+    setDependencies(TypingManager, FormatManager, PasteManager, DOMManager, HistoryManager) {
         this.TypingManager = TypingManager;
         this.StyleManager = FormatManager;
         this.PasteManager = PasteManager;
         this.DOMManager = DOMManager;
         this.HistoryManager = HistoryManager;
-        this.onChange = onChange;
     }
     addBlockAfter(blockId, type, content = "", select = true) {
         const index = this.blocks.findIndex((block) => block.id === blockId);
@@ -84,12 +87,12 @@ export class BloxManager extends EventEmitter {
     getBlox() {
         return this.blocks;
     }
-    setBlox(newBlox, isUndo = false) {
+    setBlox(newBlox, isHistoryOperation = false) {
         if (this.areBloxArraysEqual(this.blocks, newBlox)) {
             return;
         }
         this.blocks = newBlox;
-        this.wasCreatedByUndo = isUndo;
+        this.wasHistoryOperation = isHistoryOperation;
     }
     isAllSelected() {
         return this.blocks.every((b) => b.isSelected);
@@ -98,11 +101,13 @@ export class BloxManager extends EventEmitter {
         return this.blocks.some((b) => b.isSelected);
     }
     selectAllBlox(selectAll) {
+        if (selectAll === this.isAllSelected())
+            return;
         this.blocks.forEach((b) => (b.isSelected = selectAll));
         this.sendUpdateEvent();
     }
-    isUndo() {
-        return this.wasCreatedByUndo;
+    isHistoryOperation() {
+        return this.wasHistoryOperation;
     }
     areBloxArraysEqual(array1, array2) {
         if (array1.length !== array2.length) {
@@ -115,20 +120,29 @@ export class BloxManager extends EventEmitter {
                 block.content === otherBlock.content);
         });
     }
-    update(onChange, providedBlocks, calledFromEditor) {
-        var _a, _b;
-        const newBlocks = providedBlocks !== null && providedBlocks !== void 0 ? providedBlocks : this.getBlox();
+    update({ onChange, blocks, calledFromEditor = false, forceUpdate = false, }) {
+        var _a, _b, _c;
+        const newBlocks = blocks !== null && blocks !== void 0 ? blocks : this.getBlox();
+        const structureBeforeChange = (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.blocksToHTML(this.blocks);
+        const newStructure = (_b = this.DOMManager) === null || _b === void 0 ? void 0 : _b.blocksToHTML(newBlocks);
         this.setBlox(newBlocks);
-        const newStructure = (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.blocksToHTML(newBlocks);
         if (!newStructure)
             return;
-        onChange(newStructure);
-        if (!this.wasCreatedByUndo) {
-            (_b = this.HistoryManager) === null || _b === void 0 ? void 0 : _b.saveState(newStructure);
+        if (newStructure === this.lastUpdatedContent && !forceUpdate) {
+            console.log("Typeblox: Update skipped structures are the same");
+            return;
         }
-        this.wasCreatedByUndo = false;
-        if (!calledFromEditor)
+        this.lastUpdatedContent = newStructure;
+        onChange(newStructure);
+        if (!this.wasHistoryOperation) {
+            if (structureBeforeChange) {
+                (_c = this.HistoryManager) === null || _c === void 0 ? void 0 : _c.saveState(structureBeforeChange);
+            }
+        }
+        this.wasHistoryOperation = false;
+        if (!calledFromEditor) {
             this.sendUpdateEvent();
+        }
     }
     createBlox({ id, type = BLOCK_TYPES.text, content = "", style = "", classes = "", attributes = "", }) {
         if (!this.areDependenciesSet())
@@ -148,6 +162,7 @@ export class BloxManager extends EventEmitter {
             StyleManager: this.StyleManager,
             PasteManager: this.PasteManager,
             DOMManager: this.DOMManager,
+            HistoryManager: this.HistoryManager,
             style,
             classes,
             attributes,
@@ -157,17 +172,19 @@ export class BloxManager extends EventEmitter {
             (_a = this.StyleManager) === null || _a === void 0 ? void 0 : _a.updateCurrentStyles(block);
         });
         block === null || block === void 0 ? void 0 : block.on(EVENTS.blocksChanged, () => {
-            this.update(this.onChange);
+            this.update({ onChange: this.onChange, forceUpdate: true });
         });
         return block;
     }
     removeById(blockId) {
+        var _a;
         const index = this.blocks.findIndex((block) => block.id === blockId);
         if (index === -1) {
             return false;
         }
         // Remove the block from the array
         this.blocks.splice(index, 1);
+        (_a = this.HistoryManager) === null || _a === void 0 ? void 0 : _a.saveState();
         // Emit the blocksChanged event
         this.sendUpdateEvent();
         return true;

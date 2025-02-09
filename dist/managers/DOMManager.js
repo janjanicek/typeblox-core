@@ -173,7 +173,7 @@ export class DOMManager {
             if (!targetNode || targetNode.nodeType !== Node.TEXT_NODE) {
                 console.warn("No valid text node found for selection. Adding one.");
                 // If no meaningful text node exists, insert a zero-width space
-                targetNode = document.createTextNode("\u200B"); // Zero-width space
+                targetNode = document.createTextNode(""); // Zero-width space
                 element.appendChild(targetNode);
             }
             const textLength = ((_e = targetNode.textContent) === null || _e === void 0 ? void 0 : _e.length) || 0;
@@ -189,6 +189,7 @@ export class DOMManager {
             selection === null || selection === void 0 ? void 0 : selection.removeAllRanges();
             selection === null || selection === void 0 ? void 0 : selection.addRange(range);
         };
+        this.getCurrentDOM = () => { var _a, _b; return this.blocksToHTML((_b = (_a = this.BloxManager) === null || _a === void 0 ? void 0 : _a.getBlox()) !== null && _b !== void 0 ? _b : []); };
         this.parseHTMLToBlocks = (htmlString) => {
             var _a;
             if (!this.BloxManager) {
@@ -227,7 +228,7 @@ export class DOMManager {
                         content: finalElement.innerHTML.trim(),
                     });
             })
-                .filter((block) => block != null);
+                .filter((block) => block != null && !block.isContentEmpty());
             if (doc.body.children.length === 0) {
                 const emptyBlock = (_a = this.BloxManager) === null || _a === void 0 ? void 0 : _a.createBlox({
                     id: generateId(),

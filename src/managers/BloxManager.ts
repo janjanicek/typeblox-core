@@ -17,8 +17,16 @@ interface CreateBloxParams {
   attributes?: string | null;
 }
 
+interface UpdateProps {
+  onChange: Function;
+  blocks?: Blox[];
+  calledFromEditor?: boolean;
+  forceUpdate?: boolean;
+}
+
 export class BloxManager extends EventEmitter {
   private blocks: Blox[] = [];
+  private lastUpdatedContent: string;
 
   private TypingManager: TypingManager | null = null;
   private StyleManager: StyleManager | null = null;
@@ -26,13 +34,18 @@ export class BloxManager extends EventEmitter {
   private PasteManager: PasteManager | null = null;
   private HistoryManager: HistoryManager | null = null;
   private onChange: Function;
-  private wasCreatedByUndo: boolean;
+  private wasHistoryOperation: boolean;
 
   constructor(onChange: Function) {
     super();
     this.onChange = onChange;
     this.blocks = [];
-    this.wasCreatedByUndo = false;
+    this.wasHistoryOperation = false;
+    this.lastUpdatedContent = "";
+  }
+
+  updateChange(onChange: Function) {
+    this.onChange = onChange;
   }
 
   setDependencies(
@@ -41,14 +54,12 @@ export class BloxManager extends EventEmitter {
     PasteManager: PasteManager,
     DOMManager: DOMManager,
     HistoryManager: HistoryManager,
-    onChange: Function,
   ) {
     this.TypingManager = TypingManager;
     this.StyleManager = FormatManager;
     this.PasteManager = PasteManager;
     this.DOMManager = DOMManager;
     this.HistoryManager = HistoryManager;
-    this.onChange = onChange;
   }
 
   private areDependenciesSet = () =>
@@ -86,7 +97,6 @@ export class BloxManager extends EventEmitter {
 
     // Insert the new block after the found index
     this.blocks.splice(index + 1, 0, newBlock);
-
     this.sendUpdateEvent();
 
     // Optionally focus the new block
@@ -144,12 +154,12 @@ export class BloxManager extends EventEmitter {
     return this.blocks;
   }
 
-  public setBlox(newBlox: Blox[], isUndo: boolean = false): void {
+  public setBlox(newBlox: Blox[], isHistoryOperation: boolean = false): void {
     if (this.areBloxArraysEqual(this.blocks, newBlox)) {
       return;
     }
     this.blocks = newBlox;
-    this.wasCreatedByUndo = isUndo;
+    this.wasHistoryOperation = isHistoryOperation;
   }
 
   public isAllSelected(): boolean {
@@ -161,12 +171,13 @@ export class BloxManager extends EventEmitter {
   }
 
   public selectAllBlox(selectAll: boolean): void {
+    if (selectAll === this.isAllSelected()) return;
     this.blocks.forEach((b) => (b.isSelected = selectAll));
     this.sendUpdateEvent();
   }
 
-  public isUndo(): boolean {
-    return this.wasCreatedByUndo;
+  public isHistoryOperation(): boolean {
+    return this.wasHistoryOperation;
   }
 
   private areBloxArraysEqual(array1: Blox[], array2: Blox[]): boolean {
@@ -184,24 +195,39 @@ export class BloxManager extends EventEmitter {
     });
   }
 
-  public update(
-    onChange: Function,
-    providedBlocks?: Blox[],
-    calledFromEditor?: false,
-  ): void {
-    const newBlocks = providedBlocks ?? this.getBlox();
-    this.setBlox(newBlocks);
+  public update({
+    onChange,
+    blocks,
+    calledFromEditor = false,
+    forceUpdate = false,
+  }: UpdateProps): void {
+    const newBlocks = blocks ?? this.getBlox();
+    const structureBeforeChange = this.DOMManager?.blocksToHTML(this.blocks);
     const newStructure = this.DOMManager?.blocksToHTML(newBlocks);
+
+    this.setBlox(newBlocks);
 
     if (!newStructure) return;
 
-    onChange(newStructure);
-    if (!this.wasCreatedByUndo) {
-      this.HistoryManager?.saveState(newStructure);
+    if (newStructure === this.lastUpdatedContent && !forceUpdate) {
+      console.log("Typeblox: Update skipped structures are the same");
+      return;
     }
 
-    this.wasCreatedByUndo = false;
-    if (!calledFromEditor) this.sendUpdateEvent();
+    this.lastUpdatedContent = newStructure;
+
+    onChange(newStructure);
+
+    if (!this.wasHistoryOperation) {
+      if (structureBeforeChange) {
+        this.HistoryManager?.saveState(structureBeforeChange);
+      }
+    }
+
+    this.wasHistoryOperation = false;
+    if (!calledFromEditor) {
+      this.sendUpdateEvent();
+    }
   }
 
   public createBlox({
@@ -231,6 +257,7 @@ export class BloxManager extends EventEmitter {
       StyleManager: this.StyleManager!,
       PasteManager: this.PasteManager!,
       DOMManager: this.DOMManager!,
+      HistoryManager: this.HistoryManager!,
       style,
       classes,
       attributes,
@@ -240,7 +267,7 @@ export class BloxManager extends EventEmitter {
       this.StyleManager?.updateCurrentStyles(block);
     });
     block?.on(EVENTS.blocksChanged, () => {
-      this.update(this.onChange);
+      this.update({ onChange: this.onChange, forceUpdate: true });
     });
 
     return block;
@@ -255,6 +282,7 @@ export class BloxManager extends EventEmitter {
 
     // Remove the block from the array
     this.blocks.splice(index, 1);
+    this.HistoryManager?.saveState();
 
     // Emit the blocksChanged event
     this.sendUpdateEvent();
@@ -449,7 +477,7 @@ export class BloxManager extends EventEmitter {
     this.sendUpdateEvent();
   }
 
-  private sendUpdateEvent(): void {
+  public sendUpdateEvent(): void {
     this.emit(EVENTS.blocksChanged, [...this.blocks]);
   }
 

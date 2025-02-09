@@ -3,7 +3,6 @@ import { CLASSES } from "../constants";
 export class TypingManager {
     constructor() {
         this.lastRange = null;
-        this.lastRangeElement = null;
     }
     saveSelectionRange() {
         const selection = window.getSelection();
@@ -12,10 +11,6 @@ export class TypingManager {
         }
         const range = selection.getRangeAt(0); // Get the current selection range
         this.lastRange = range;
-        this.lastRangeElement =
-            range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
-                ? range.commonAncestorContainer
-                : range.commonAncestorContainer.parentElement;
     }
     restoreSelectionRange() {
         if (!this.lastRange) {
@@ -66,9 +61,26 @@ export class TypingManager {
         }
     }
     createSelectedElement(range) {
-        var _a;
-        let customRange = range || ((_a = window.getSelection()) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)); // Get current selection if no range is provided
-        if (!customRange) {
+        const selection = window.getSelection();
+        if (!selection)
+            return;
+        let customRange = range || selection.getRangeAt(0); // Get current selection if no range is provided
+        if (!customRange)
+            return;
+        const commonAncestor = customRange.commonAncestorContainer;
+        if (commonAncestor.nodeType === Node.ELEMENT_NODE &&
+            commonAncestor.nodeName === "UL") {
+            const selectedNodes = Array.from(customRange.cloneContents().childNodes);
+            selectedNodes.forEach((node) => {
+                var _a;
+                if (node.nodeName === "LI") {
+                    const wrapper = document.createElement("span");
+                    wrapper.className = CLASSES.selected;
+                    // Wrap the contents of the <li> item
+                    wrapper.appendChild(node.cloneNode(true));
+                    (_a = node.parentNode) === null || _a === void 0 ? void 0 : _a.replaceChild(wrapper, node);
+                }
+            });
             return;
         }
         const wrapper = document.createElement("span");
@@ -199,11 +211,6 @@ export class TypingManager {
                 endOffset = ((_a = lastTextNode.textContent) === null || _a === void 0 ? void 0 : _a.length) || 0;
             }
         }
-        // const childNodes = Array.from(container.childNodes);
-        // const lastChild = childNodes[childNodes.length - 1];
-        // if (lastChild?.nodeName === "BR" && endNode === lastChild) {
-        //   return false; // Cursor is after the last <br>
-        // }
         const lastNode = this.getLastMeaningfulNode(container);
         if (!lastNode)
             return false;

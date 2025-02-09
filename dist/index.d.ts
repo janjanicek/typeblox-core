@@ -2,6 +2,7 @@ import { detectedStyles, imageUploadFunction, onChangeFunction, Extension } from
 import { EventEmitter } from "events";
 import { Blox } from "./classes/Blox";
 import { StyleManager } from "./managers/StyleManager";
+import { HistoryManager } from "./managers/HistoryManager";
 import { TypingManager } from "./managers/TypingManager";
 import { DOMManager } from "./managers/DOMManager";
 import { BloxManager } from "./managers/BloxManager";
@@ -40,6 +41,7 @@ declare class Typeblox extends EventEmitter {
     elements(): DOMManager;
     link(): LinkManager;
     paste(): PasteManager;
+    history(): HistoryManager;
     getBlockById(id: string | undefined): Blox | undefined;
     getBlockElementById(id: string | undefined): HTMLElement | null;
     getSelectionStyle(): detectedStyles;
@@ -51,9 +53,6 @@ declare class Typeblox extends EventEmitter {
     isStyle(style: string): boolean;
     getStyle(style: string): string;
     private detectSelection;
-    private getCurrentDom;
     private updateEditorContent;
-    handleUndo: () => void;
-    handleRedo: () => void;
 }
 export default Typeblox;

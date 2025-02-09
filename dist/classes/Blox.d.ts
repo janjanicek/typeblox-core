@@ -4,6 +4,7 @@ import { TypingManager } from "../managers/TypingManager";
 import { StyleManager } from "../managers/StyleManager";
 import { PasteManager } from "../managers/PasteManager";
 import { DOMManager } from "../managers/DOMManager";
+import { HistoryManager } from "../managers/HistoryManager";
 interface BloxProps {
     id: string;
     content: string;
@@ -12,6 +13,7 @@ interface BloxProps {
     TypingManager: TypingManager;
     StyleManager: StyleManager;
     PasteManager: PasteManager;
+    HistoryManager: HistoryManager;
     DOMManager: DOMManager;
     style?: string | null;
     classes?: string | null;
@@ -27,14 +29,17 @@ export declare class Blox extends EventEmitter {
     StyleManager: StyleManager;
     PasteManager: PasteManager;
     DOMManager: DOMManager;
+    HistoryManager: HistoryManager;
     styles: string;
     classes: string;
     attributes: string;
     isSelected: boolean;
-    constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, PasteManager, DOMManager, style, classes, attributes, }: BloxProps);
+    constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, HistoryManager, PasteManager, DOMManager, style, classes, attributes, }: BloxProps);
     getContentElement(): HTMLElement | null;
-    updateContent: () => void;
+    getImageURL(): string;
+    updateContent: () => boolean;
     getContent: () => string;
+    isContentEmpty: () => boolean;
     setContent: (contentString: string) => void;
     private executeWithCallbacks;
     private beforeToggle;
@@ -46,6 +51,8 @@ export declare class Blox extends EventEmitter {
     clearStyle(): void;
     applyStyle(tagName: string, style: Record<string, string>): void;
     toggleType(newType: BlockType): void;
+    private isListType;
+    private shouldClearContent;
     pasteContent(e: ClipboardEvent): void;
     getStyles(): Record<string, string>;
     setStyle(property: string, value: string): void;

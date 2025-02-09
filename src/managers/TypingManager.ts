@@ -3,7 +3,6 @@ import { CLASSES } from "../constants";
 
 export class TypingManager {
   private lastRange: Range | null = null;
-  private lastRangeElement: Node | null = null;
 
   public saveSelectionRange() {
     const selection = window.getSelection();
@@ -13,10 +12,6 @@ export class TypingManager {
 
     const range = selection.getRangeAt(0); // Get the current selection range
     this.lastRange = range;
-    this.lastRangeElement =
-      range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
-        ? (range.commonAncestorContainer as Element)
-        : range.commonAncestorContainer.parentElement;
   }
 
   public restoreSelectionRange() {
@@ -83,9 +78,30 @@ export class TypingManager {
   }
 
   createSelectedElement(range?: Range): void {
-    let customRange = range || window.getSelection()?.getRangeAt(0); // Get current selection if no range is provided
+    const selection = window.getSelection();
+    if (!selection) return;
 
-    if (!customRange) {
+    let customRange = range || selection.getRangeAt(0); // Get current selection if no range is provided
+    if (!customRange) return;
+
+    const commonAncestor = customRange.commonAncestorContainer;
+
+    if (
+      commonAncestor.nodeType === Node.ELEMENT_NODE &&
+      commonAncestor.nodeName === "UL"
+    ) {
+      const selectedNodes = Array.from(customRange.cloneContents().childNodes);
+
+      selectedNodes.forEach((node) => {
+        if (node.nodeName === "LI") {
+          const wrapper = document.createElement("span");
+          wrapper.className = CLASSES.selected;
+
+          // Wrap the contents of the <li> item
+          wrapper.appendChild(node.cloneNode(true));
+          node.parentNode?.replaceChild(wrapper, node);
+        }
+      });
       return;
     }
 
@@ -248,12 +264,6 @@ export class TypingManager {
         endOffset = lastTextNode.textContent?.length || 0;
       }
     }
-
-    // const childNodes = Array.from(container.childNodes);
-    // const lastChild = childNodes[childNodes.length - 1];
-    // if (lastChild?.nodeName === "BR" && endNode === lastChild) {
-    //   return false; // Cursor is after the last <br>
-    // }
 
     const lastNode = this.getLastMeaningfulNode(container);
     if (!lastNode) return false;

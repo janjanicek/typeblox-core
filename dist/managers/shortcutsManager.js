@@ -30,7 +30,7 @@ export class ShortcutsManager {
     registerShortcuts() {
         this.unregisterShortcuts(); // Ensure we don’t register multiple handlers
         this.shortcutHandler = (event) => {
-            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16;
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14;
             let blockElement = null;
             const currentBlockFromEvent = (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.getBlockFromEvent(event);
             const currentBlock = (_b = this.BloxManager) === null || _b === void 0 ? void 0 : _b.getCurrentBlock();
@@ -189,17 +189,15 @@ export class ShortcutsManager {
             }
             if ((event.metaKey || event.ctrlKey) &&
                 (event.key === "z" || event.key === "y")) {
-                const isRedo = event.shiftKey && event.key === "z"; // Shift+Z for redo (or Y for Windows/Linux)
-                const currentBlox = (_13 = this.BloxManager) === null || _13 === void 0 ? void 0 : _13.getBlox();
-                if (!currentBlox)
-                    return;
+                const isRedo = (event.metaKey && event.key === "y") ||
+                    (event.ctrlKey && event.key === "y"); // Shift+Z for redo (or Y for Windows/Linux)
                 event.preventDefault();
-                const currentState = (_14 = this.DOMManager) === null || _14 === void 0 ? void 0 : _14.blocksToHTML(currentBlox);
-                if (!currentState)
-                    return;
-                isRedo
-                    ? (_15 = this.HistoryManager) === null || _15 === void 0 ? void 0 : _15.redo()
-                    : (_16 = this.HistoryManager) === null || _16 === void 0 ? void 0 : _16.undo(currentState);
+                isRedo ? (_13 = this.HistoryManager) === null || _13 === void 0 ? void 0 : _13.redo() : (_14 = this.HistoryManager) === null || _14 === void 0 ? void 0 : _14.undo();
+            }
+            // Default styling shortcuts
+            if ((event.metaKey || event.ctrlKey) &&
+                (event.key === "b" || event.key === "i" || event.key === "u")) {
+                setTimeout(() => { var _a, _b; return (_b = (_a = this.BloxManager) === null || _a === void 0 ? void 0 : _a.getCurrentBlock()) === null || _b === void 0 ? void 0 : _b.sendUpdateStyleEvent(); }, 1000);
             }
         };
         window.addEventListener("keydown", this.shortcutHandler);

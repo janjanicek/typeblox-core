@@ -118,10 +118,10 @@ export const BLOCKS_SETTINGS = {
         visibleName: "Image",
         blockName: BLOCK_TYPES.image,
         placeholder: "",
-        contentPattern: (content) => `<img src="${content}" />`,
+        contentPattern: (content) => `${content}`,
         icon: "Photo",
         description: "Upload an image or embed it via link.",
-        toolbar: "replaceImage | align",
+        toolbar: "replaceImage imageSettings | align",
         availableTypes: ["html"],
     },
     code: {
@@ -149,7 +149,10 @@ export const BLOCKS_SETTINGS = {
         blockName: BLOCK_TYPES.bulletedList,
         description: "Create a simple bulleted list",
         placeholder: "List",
-        contentPattern: (content) => `<li>${content}</li>`,
+        contentPattern: (content) => {
+            console.log("pattern");
+            return `<li>${content}</li>`;
+        },
         toolbar: "type | font | bold italic underline strikethrough | color bgColor",
         icon: "List",
         availableTypes: [
@@ -220,6 +223,7 @@ export const EVENTS = {
     blocksChanged: "typeblox.blocksChanged",
     styleChange: "typeblox.styleChanges",
     selectionChange: "typeblox.selectionChange",
+    historyChange: "typeblox.historyChange",
 };
 export const allowedAttributes = [
     "data-id",
