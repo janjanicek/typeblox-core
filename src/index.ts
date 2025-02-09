@@ -114,7 +114,6 @@ class Typeblox extends EventEmitter {
     );
 
     this.BloxManager.on(EVENTS.blocksChanged, (blocks) => {
-      console.log("Update from BloxManager");
       this.emit(EVENTS.blocksChanged, blocks);
     });
 

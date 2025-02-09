@@ -34,6 +34,11 @@ describe("Blox Class", () => {
       style: "color: red; font-size: 16px",
       classes: "class1 class2",
     });
+
+    const mockElement = document.createElement("div");
+    mockElement.setAttribute("data-typeblox-id", "test-id");
+    document.body.appendChild(mockElement);
+    blox.contentElement = mockElement;
   });
 
   describe("Style Methods", () => {
@@ -126,6 +131,80 @@ describe("Blox Class", () => {
       const emitSpy = jest.spyOn(blox, "emit");
       blox.addClass("class3");
       expect(emitSpy).toHaveBeenCalledWith(EVENTS.styleChange);
+    });
+  });
+
+  describe("setContent Method", () => {
+    test("should update content when type is 'text' and parse HTML", () => {
+      const contentString = "<p><strong>Test</strong> content</p>";
+      blox.setContent(contentString);
+
+      expect(blox.content).toBe("<p><strong>Test</strong> content</p>");
+      expect(blox.contentElement?.innerHTML).toBe(
+        "<p><strong>Test</strong> content</p>",
+      );
+    });
+
+    test("should update content when type is 'image' and set src", () => {
+      blox.type = "image";
+      const imageUrl = "https://example.com/image.jpg";
+      const imageElement = document.createElement("img");
+      blox.contentElement = imageElement;
+
+      blox.setContent(imageUrl);
+
+      expect(blox.content).toBe(imageUrl);
+      expect(imageElement.src).toBe(imageUrl);
+    });
+
+    test("should handle nested lists and preserve <li> elements", () => {
+      const contentString =
+        "<ul><li>Item 1</li><li>Item 2</li></ul><li>Item 3</li>";
+      blox.setContent(contentString);
+
+      expect(blox.content).toBe(
+        "<ul><li>Item 1</li><li>Item 2</li></ul><li>Item 3</li>",
+      );
+      expect(blox.contentElement?.innerHTML).toBe(
+        "<ul><li>Item 1</li><li>Item 2</li></ul><li>Item 3</li>",
+      );
+    });
+
+    test("should handle missing wrapper tag and preserve content as is", () => {
+      const contentString = "<div><p><strong>Text</strong></p></div>";
+      blox.type = "text"; // Ensure it's not an image type
+
+      // Mock the contentElement to simulate actual DOM manipulation
+      blox.contentElement = document.createElement("div");
+
+      blox.setContent(contentString);
+
+      expect(blox.content).toBe("<div><p><strong>Text</strong></p></div>");
+      expect(blox.contentElement.innerHTML).toBe(
+        "<div><p><strong>Text</strong></p></div>",
+      );
+    });
+
+    test("should correctly update content when no wrapper tag is set", () => {
+      const contentString = "<div><p><strong>Sample content</strong></p></div>";
+      blox.type = "text";
+      blox.setContent(contentString);
+
+      expect(blox.content).toBe(
+        "<div><p><strong>Sample content</strong></p></div>",
+      );
+      expect(blox.contentElement?.innerHTML).toBe(
+        "<div><p><strong>Sample content</strong></p></div>",
+      );
+    });
+
+    test("should call sendUpdateBloxEvent after content update", () => {
+      const sendUpdateSpy = jest.spyOn(blox, "sendUpdateBloxEvent");
+      const contentString = "<p><strong>New content</strong></p>";
+
+      blox.setContent(contentString);
+
+      expect(sendUpdateSpy).toHaveBeenCalled();
     });
   });
 });

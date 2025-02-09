@@ -76,7 +76,6 @@ class Typeblox extends EventEmitter {
         this.HistoryManager.setDependencies(this.DOMManager);
         this.ShortcutsManager.setDependencies(this.BloxManager, this.DOMManager, this.TypingManager, this.HistoryManager);
         this.BloxManager.on(EVENTS.blocksChanged, (blocks) => {
-            console.log("Update from BloxManager");
             this.emit(EVENTS.blocksChanged, blocks);
         });
         this.BloxManager.on(EVENTS.styleChange, (block) => {

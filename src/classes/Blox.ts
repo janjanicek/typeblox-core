@@ -110,19 +110,14 @@ export class Blox extends EventEmitter {
 
   public setContent = (contentString: string) => {
     if (this.type === BLOCK_TYPES.image) {
-      // If it's an image, set `src` instead of `innerHTML`
       this.content = contentString; // Store the raw image URL
       if (this.contentElement instanceof HTMLImageElement) {
         this.contentElement.src = this.content;
       }
     } else {
-      // For other block types, parse the HTML normally
       const parser = new DOMParser();
       const doc = parser.parseFromString(contentString, "text/html");
-      const wrapperTag = BLOCKS_SETTINGS[this.type].tag;
-      const wrapperElement = doc.body.querySelector(wrapperTag);
-
-      this.content = wrapperElement ? wrapperElement.innerHTML : contentString;
+      this.content = doc.body.innerHTML;
 
       if (this.contentElement) {
         this.contentElement.innerHTML = this.content;
