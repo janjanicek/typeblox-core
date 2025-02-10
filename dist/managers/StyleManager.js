@@ -172,7 +172,17 @@ export class StyleManager extends EventEmitter {
                     // Process all child nodes first (to handle deeply nested cases)
                     Array.from(element.childNodes).forEach((child) => removeFormatting(child));
                     // Unwrap formatting tags and preserve their content
-                    if (["B", "I", "U", "S", "STRONG", "EM", "MARK", "SPAN"].includes(element.nodeName)) {
+                    if ([
+                        "B",
+                        "I",
+                        "U",
+                        "S",
+                        "STRONG",
+                        "EM",
+                        "MARK",
+                        "SPAN",
+                        "STRIKE",
+                    ].includes(element.nodeName)) {
                         while (element.firstChild) {
                             parent === null || parent === void 0 ? void 0 : parent.insertBefore(element.firstChild, element);
                         }

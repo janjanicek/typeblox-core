@@ -49,7 +49,8 @@ export const BLOCKS_SETTINGS = {
     placeholder: "Heading 1",
     contentPattern: (content: string) => `${content}`,
     description: "Big section heading.",
-    toolbar: "type | font | italic underline strikethrough | align | color",
+    toolbar:
+      "type | font | italic underline strikethrough | align | color | clearFormatting",
     icon: "H1",
     availableTypes: [
       "text",
@@ -68,7 +69,8 @@ export const BLOCKS_SETTINGS = {
     placeholder: "Heading 2",
     contentPattern: (content: string) => `${content}`,
     description: "Medium section heading.",
-    toolbar: "type | font | italic underline strikethrough | align | color",
+    toolbar:
+      "type | font | italic underline strikethrough | align | color | clearFormatting",
     icon: "H2",
     availableTypes: [
       "text",
@@ -87,7 +89,8 @@ export const BLOCKS_SETTINGS = {
     placeholder: "Heading 3",
     contentPattern: (content: string) => `${content}`,
     description: "Small section heading.",
-    toolbar: "type | font | italic underline strikethrough | align | color",
+    toolbar:
+      "type | font | italic underline strikethrough | align | color | clearFormatting",
     icon: "H3",
     availableTypes: [
       "text",
@@ -107,7 +110,7 @@ export const BLOCKS_SETTINGS = {
     placeholder: "Write something, or press '/' for commands...",
     contentPattern: (content: string) => `${content}`,
     toolbar:
-      "type | font | bold [italic,underline,strikethrough] | [align] | link | color bgColor | viewCode",
+      "type | font | bold [italic,underline,strikethrough] | [align] | link | color bgColor | clearFormatting viewCode",
     icon: "AlignLeft",
     availableTypes: [
       "text",
@@ -162,7 +165,7 @@ export const BLOCKS_SETTINGS = {
       return `<li>${content}</li>`;
     },
     toolbar:
-      "type | font | bold italic underline strikethrough | color bgColor",
+      "type | font | bold italic underline strikethrough | color bgColor | clearFormatting viewCode",
     icon: "List",
     availableTypes: [
       "numberedList",
@@ -182,7 +185,7 @@ export const BLOCKS_SETTINGS = {
     placeholder: "List",
     contentPattern: (content: string) => `<li>${content}</li>`,
     toolbar:
-      "type | font | bold italic underline strikethrough | color bgColor",
+      "type | font | bold italic underline strikethrough | color bgColor | clearFormatting viewCode",
     icon: "ListNumbers",
     availableTypes: [
       "bulletedList",

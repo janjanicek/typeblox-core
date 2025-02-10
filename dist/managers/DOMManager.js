@@ -1,3 +1,4 @@
+import { Blox } from "../classes/Blox";
 import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../constants";
 import { getAllowedAttributes } from "../utils/attributes";
 export class DOMManager {
@@ -189,7 +190,15 @@ export class DOMManager {
             selection === null || selection === void 0 ? void 0 : selection.removeAllRanges();
             selection === null || selection === void 0 ? void 0 : selection.addRange(range);
         };
-        this.getCurrentDOM = () => { var _a, _b; return this.blocksToHTML((_b = (_a = this.BloxManager) === null || _a === void 0 ? void 0 : _a.getBlox()) !== null && _b !== void 0 ? _b : []); };
+        this.getCurrentDOM = () => {
+            var _a, _b;
+            const blocks = (_b = (_a = this.BloxManager) === null || _a === void 0 ? void 0 : _a.getBlox()) !== null && _b !== void 0 ? _b : [];
+            const clonedBlocks = blocks === null || blocks === void 0 ? void 0 : blocks.map((block) => new Blox(Object.assign({}, block)));
+            clonedBlocks === null || clonedBlocks === void 0 ? void 0 : clonedBlocks.forEach((block) => {
+                block.updateContent();
+            });
+            return this.blocksToHTML(clonedBlocks);
+        };
         this.parseHTMLToBlocks = (htmlString) => {
             var _a;
             if (!this.BloxManager) {

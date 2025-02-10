@@ -42,7 +42,7 @@ export const BLOCKS_SETTINGS = {
         placeholder: "Heading 1",
         contentPattern: (content) => `${content}`,
         description: "Big section heading.",
-        toolbar: "type | font | italic underline strikethrough | align | color",
+        toolbar: "type | font | italic underline strikethrough | align | color | clearFormatting",
         icon: "H1",
         availableTypes: [
             "text",
@@ -61,7 +61,7 @@ export const BLOCKS_SETTINGS = {
         placeholder: "Heading 2",
         contentPattern: (content) => `${content}`,
         description: "Medium section heading.",
-        toolbar: "type | font | italic underline strikethrough | align | color",
+        toolbar: "type | font | italic underline strikethrough | align | color | clearFormatting",
         icon: "H2",
         availableTypes: [
             "text",
@@ -80,7 +80,7 @@ export const BLOCKS_SETTINGS = {
         placeholder: "Heading 3",
         contentPattern: (content) => `${content}`,
         description: "Small section heading.",
-        toolbar: "type | font | italic underline strikethrough | align | color",
+        toolbar: "type | font | italic underline strikethrough | align | color | clearFormatting",
         icon: "H3",
         availableTypes: [
             "text",
@@ -99,7 +99,7 @@ export const BLOCKS_SETTINGS = {
         description: "Just start writing with a simple text.",
         placeholder: "Write something, or press '/' for commands...",
         contentPattern: (content) => `${content}`,
-        toolbar: "type | font | bold [italic,underline,strikethrough] | [align] | link | color bgColor | viewCode",
+        toolbar: "type | font | bold [italic,underline,strikethrough] | [align] | link | color bgColor | clearFormatting viewCode",
         icon: "AlignLeft",
         availableTypes: [
             "text",
@@ -153,7 +153,7 @@ export const BLOCKS_SETTINGS = {
             console.log("pattern");
             return `<li>${content}</li>`;
         },
-        toolbar: "type | font | bold italic underline strikethrough | color bgColor",
+        toolbar: "type | font | bold italic underline strikethrough | color bgColor | clearFormatting viewCode",
         icon: "List",
         availableTypes: [
             "numberedList",
@@ -172,7 +172,7 @@ export const BLOCKS_SETTINGS = {
         description: "Create a simple bulleted list",
         placeholder: "List",
         contentPattern: (content) => `<li>${content}</li>`,
-        toolbar: "type | font | bold italic underline strikethrough | color bgColor",
+        toolbar: "type | font | bold italic underline strikethrough | color bgColor | clearFormatting viewCode",
         icon: "ListNumbers",
         availableTypes: [
             "bulletedList",

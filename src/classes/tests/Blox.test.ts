@@ -124,7 +124,7 @@ describe("Blox Class", () => {
     test("should emit styleChange event on style updates", () => {
       const emitSpy = jest.spyOn(blox, "emit");
       blox.setStyle("color", "blue");
-      expect(emitSpy).toHaveBeenCalledWith(EVENTS.blocksChanged);
+      expect(emitSpy).toHaveBeenCalledWith(EVENTS.styleChange);
     });
 
     test("should emit styleChange event on class updates", () => {

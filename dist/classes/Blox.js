@@ -23,7 +23,7 @@ export class Blox extends EventEmitter {
         };
         this.getContent = () => {
             this.updateContent();
-            return `<${BLOCKS_SETTINGS[this.type].tag}>${this.content}</${BLOCKS_SETTINGS[this.type].tag}>`;
+            return this.content;
         };
         this.isContentEmpty = () => /^[\s\u00A0\u200B]*$/.test(this.content);
         this.setContent = (contentString) => {
@@ -140,7 +140,6 @@ export class Blox extends EventEmitter {
         return this.executeWithCallbacks(() => {
             if (document.queryCommandSupported("removeFormat")) {
                 document.execCommand("removeFormat");
-                console.warn("removeFormat");
             }
             else {
                 this.StyleManager.clearFormat();
@@ -210,7 +209,7 @@ export class Blox extends EventEmitter {
         this.styles = Object.entries(styles)
             .map(([key, val]) => `${key}: ${val}`)
             .join("; ");
-        this.sendUpdateBloxEvent();
+        this.sendUpdateStyleEvent();
     }
     // Setter for multiple styles
     setStyles(styles) {
@@ -225,7 +224,7 @@ export class Blox extends EventEmitter {
         this.styles = Object.entries(currentStyles)
             .map(([key, value]) => `${key}: ${value}`)
             .join("; ");
-        this.sendUpdateBloxEvent();
+        this.sendUpdateStyleEvent();
     }
     // Remove a specific style
     removeStyle(property) {
@@ -234,12 +233,12 @@ export class Blox extends EventEmitter {
         this.styles = Object.entries(styles)
             .map(([key, val]) => `${key}: ${val}`)
             .join("; ");
-        this.sendUpdateBloxEvent();
+        this.sendUpdateStyleEvent();
     }
     // Clear all styles
     clearStyles() {
         this.styles = "";
-        this.sendUpdateBloxEvent();
+        this.sendUpdateStyleEvent();
     }
     // Getter for classes
     getClasses() {
@@ -317,7 +316,7 @@ export class Blox extends EventEmitter {
         this.attributes = Object.entries(attributes)
             .map(([key, val]) => `${key}="${val}"`)
             .join("; ");
-        this.sendUpdateBloxEvent();
+        this.sendUpdateStyleEvent();
     }
     // Setter for multiple attributes
     setAttributes(attributes) {
@@ -330,7 +329,7 @@ export class Blox extends EventEmitter {
         this.attributes = Object.entries(currentAttributes)
             .map(([key, val]) => `${key}="${val}"`)
             .join("; ");
-        this.sendUpdateBloxEvent();
+        this.sendUpdateStyleEvent();
     }
     // Remove a specific attribute
     removeAttribute(attribute) {
@@ -339,22 +338,20 @@ export class Blox extends EventEmitter {
         this.attributes = Object.entries(attributes)
             .map(([key, val]) => `${key}="${val}"`)
             .join("; ");
-        this.sendUpdateBloxEvent();
+        this.sendUpdateStyleEvent();
     }
     // Clear all attributes
     clearAttributes() {
         this.attributes = "";
-        this.sendUpdateBloxEvent();
+        this.sendUpdateStyleEvent();
     }
     setIsSelected(isSelected) {
         this.isSelected = isSelected;
         this.sendUpdateBloxEvent();
     }
     sendUpdateStyleEvent() {
-        var _a;
-        this.updateContent();
-        (_a = this.HistoryManager) === null || _a === void 0 ? void 0 : _a.saveState();
         this.emit(EVENTS.styleChange);
+        setTimeout(() => { var _a; return (_a = this.HistoryManager) === null || _a === void 0 ? void 0 : _a.saveState(); }, 1000);
     }
     sendUpdateBloxEvent() {
         this.emit(EVENTS.blocksChanged);

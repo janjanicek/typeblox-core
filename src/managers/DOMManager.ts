@@ -254,8 +254,16 @@ export class DOMManager {
     selection?.addRange(range);
   };
 
-  public getCurrentDOM = () =>
-    this.blocksToHTML(this.BloxManager?.getBlox() ?? []);
+  public getCurrentDOM = (): string => {
+    const blocks = this.BloxManager?.getBlox() ?? [];
+    const clonedBlocks = blocks?.map((block) => new Blox({ ...block }));
+
+    clonedBlocks?.forEach((block) => {
+      block.updateContent();
+    });
+
+    return this.blocksToHTML(clonedBlocks);
+  };
 
   public parseHTMLToBlocks = (htmlString: string): Blox[] => {
     if (!this.BloxManager) {

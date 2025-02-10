@@ -341,9 +341,17 @@ export class StyleManager extends EventEmitter {
 
         // Unwrap formatting tags and preserve their content
         if (
-          ["B", "I", "U", "S", "STRONG", "EM", "MARK", "SPAN"].includes(
-            element.nodeName,
-          )
+          [
+            "B",
+            "I",
+            "U",
+            "S",
+            "STRONG",
+            "EM",
+            "MARK",
+            "SPAN",
+            "STRIKE",
+          ].includes(element.nodeName)
         ) {
           while (element.firstChild) {
             parent?.insertBefore(element.firstChild, element);
