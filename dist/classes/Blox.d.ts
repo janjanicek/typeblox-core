@@ -1,4 +1,4 @@
-import { BlockType } from "../types";
+import { BlockType, EventCallback } from "../types";
 import { EventEmitter } from "./EventEmitter";
 import { TypingManager } from "../managers/TypingManager";
 import { StyleManager } from "../managers/StyleManager";
@@ -34,6 +34,7 @@ export declare class Blox extends EventEmitter {
     classes: string;
     attributes: string;
     isSelected: boolean;
+    _listeners?: Record<string, EventCallback>;
     constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, HistoryManager, PasteManager, DOMManager, style, classes, attributes, }: BloxProps);
     getContentElement(): HTMLElement | null;
     getImageURL(): string;

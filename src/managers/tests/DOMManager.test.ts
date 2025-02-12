@@ -1,9 +1,9 @@
 import { DOMManager } from "../../managers/DOMManager";
 import { Blox } from "../../classes/Blox";
 import { BloxManager } from "../../managers/BloxManager";
-import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../../constants";
 import { createRangeMock } from "./mocks/RangeMock";
 import { createSelectionMock } from "./mocks/SelectionMock";
+import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../../blockTypes";
 
 jest.mock("../../managers/BloxManager");
 
@@ -80,7 +80,7 @@ describe("DOMManager", () => {
       const result = domManager.blocksToHTML(blocks);
 
       expect(result).toBe(
-        '<p style="color: red;" class="example-class" >Hello</p>',
+        '<p style="color: red; " class="example-class " >Hello</p>',
       );
     });
 

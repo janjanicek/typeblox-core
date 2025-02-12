@@ -1,5 +1,5 @@
 import { Blox } from "../classes/Blox";
-import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../constants";
+import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../blockTypes";
 import { getAllowedAttributes } from "../utils/attributes";
 export class DOMManager {
     constructor(initialBloxManager, initialTypingManager) {

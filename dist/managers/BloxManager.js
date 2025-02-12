@@ -1,6 +1,7 @@
 import { EventEmitter } from "../classes/EventEmitter";
 import { Blox } from "../classes/Blox";
-import { BLOCKS_SETTINGS, BLOCK_TYPES, EVENTS } from "../constants";
+import { EVENTS } from "../constants";
+import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../blockTypes";
 export class BloxManager extends EventEmitter {
     constructor(onChange) {
         super();
@@ -122,6 +123,8 @@ export class BloxManager extends EventEmitter {
     }
     update({ onChange, blocks, calledFromEditor = false, forceUpdate = false, }) {
         var _a, _b, _c;
+        if (blocks)
+            blocks.forEach((block) => this.registerEvents(block));
         const newBlocks = blocks !== null && blocks !== void 0 ? blocks : this.getBlox();
         const structureBeforeChange = (_a = this.DOMManager) === null || _a === void 0 ? void 0 : _a.blocksToHTML(this.blocks);
         const newStructure = (_b = this.DOMManager) === null || _b === void 0 ? void 0 : _b.blocksToHTML(newBlocks);
@@ -167,14 +170,31 @@ export class BloxManager extends EventEmitter {
             classes,
             attributes,
         });
-        block === null || block === void 0 ? void 0 : block.on(EVENTS.styleChange, () => {
+        this.registerEvents(block);
+        return block;
+    }
+    registerEvents(block) {
+        if (!block._listeners) {
+            block._listeners = {};
+        }
+        // If listeners exist, remove them first
+        if (block._listeners[EVENTS.styleChange]) {
+            block.off(EVENTS.styleChange, block._listeners[EVENTS.styleChange]);
+        }
+        if (block._listeners[EVENTS.blocksChanged]) {
+            block.off(EVENTS.blocksChanged, block._listeners[EVENTS.blocksChanged]);
+        }
+        // Define handlers and store them
+        block._listeners[EVENTS.styleChange] = () => {
             var _a;
             (_a = this.StyleManager) === null || _a === void 0 ? void 0 : _a.updateCurrentStyles(block);
-        });
-        block === null || block === void 0 ? void 0 : block.on(EVENTS.blocksChanged, () => {
+        };
+        block._listeners[EVENTS.blocksChanged] = () => {
             this.update({ onChange: this.onChange, forceUpdate: true });
-        });
-        return block;
+        };
+        // Register events using stored handlers
+        block.on(EVENTS.styleChange, block._listeners[EVENTS.styleChange]);
+        block.on(EVENTS.blocksChanged, block._listeners[EVENTS.blocksChanged]);
     }
     removeById(blockId) {
         var _a;

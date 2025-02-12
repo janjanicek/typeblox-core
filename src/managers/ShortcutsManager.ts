@@ -1,5 +1,5 @@
 import { isEmpty } from "../utils/elements";
-import { BLOCK_TYPES, DEFAULT_BLOCK_TYPE } from "../constants";
+import { BLOCK_TYPES, DEFAULT_BLOCK_TYPE } from "../blockTypes";
 import { BloxManager } from "./BloxManager";
 import { DOMManager } from "./DOMManager";
 import { HistoryManager } from "./HistoryManager";

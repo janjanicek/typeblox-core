@@ -1,4 +1,4 @@
-import { detectedStyles, imageUploadFunction, onChangeFunction, Extension } from "./types";
+import { detectedStyles, imageUploadFunction, onChangeFunction, Extension, BlockSettings, BlockType } from "./types";
 import { EventEmitter } from "events";
 import { Blox } from "./classes/Blox";
 import { StyleManager } from "./managers/StyleManager";
@@ -15,6 +15,7 @@ export interface TypeBloxInitOptions {
     onUpdate: onChangeFunction;
     onImageUpload?: imageUploadFunction;
     extensions?: Extension[] | null;
+    blocks?: Record<BlockType, Partial<BlockSettings>>;
 }
 declare class Typeblox extends EventEmitter {
     private HistoryManager;
@@ -32,6 +33,7 @@ declare class Typeblox extends EventEmitter {
     isSameSelection(newStart: number, newEnd: number): boolean;
     constructor();
     init(options: TypeBloxInitOptions): void;
+    private updateBlockSettings;
     private registerAllExtensions;
     destroy(): void;
     selection(): TypingManager;

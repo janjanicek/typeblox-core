@@ -1,5 +1,5 @@
 import { isEmpty } from "../utils/elements";
-import { BLOCK_TYPES, DEFAULT_BLOCK_TYPE } from "../constants";
+import { BLOCK_TYPES, DEFAULT_BLOCK_TYPE } from "../blockTypes";
 export class ShortcutsManager {
     constructor(initialBloxManager, initialDOMManager, initialTypingManager, initialHistoryManager) {
         this.DOMManager = null;

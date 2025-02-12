@@ -1,5 +1,6 @@
 import { Blox } from "../classes/Blox";
-import { BLOCKS_SETTINGS, BLOCK_TYPES, EVENTS } from "../constants";
+import { EVENTS } from "../constants";
+import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../blockTypes";
 import type { BloxManager } from "./BloxManager";
 import { getAllowedAttributes } from "../utils/attributes";
 import { TypingManager } from "./TypingManager";

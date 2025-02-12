@@ -1,4 +1,5 @@
-import { CLASSES, EVENTS } from "./constants";
+import { EVENTS, CLASSES } from "./constants";
+import { updateBlockSettings } from "./blockTypes";
 import { EventEmitter } from "events";
 import { StyleManager } from "./managers/StyleManager";
 import { registerListeners, removeListeners } from "./utils/listeners";
@@ -78,9 +79,9 @@ class Typeblox extends EventEmitter {
         this.BloxManager.on(EVENTS.blocksChanged, (blocks) => {
             this.emit(EVENTS.blocksChanged, blocks);
         });
-        this.BloxManager.on(EVENTS.styleChange, (block) => {
-            this.emit(EVENTS.styleChange, block);
-        });
+        // this.BloxManager.on(EVENTS.styleChange, (block) => {
+        //   this.emit(EVENTS.styleChange, block);
+        // });
         this.StyleManager.on(EVENTS.styleChange, (block) => {
             this.emit(EVENTS.styleChange, block);
         });
@@ -94,7 +95,7 @@ class Typeblox extends EventEmitter {
     // Public methods
     init(options) {
         var _a;
-        const { HTMLString, onUpdate, onImageUpload, extensions } = options;
+        const { HTMLString, onUpdate, onImageUpload, extensions, blocks } = options;
         if (HTMLString)
             this.blox().setBlox(this.elements().parseHTMLToBlocks(HTMLString));
         if (onUpdate) {
@@ -105,6 +106,14 @@ class Typeblox extends EventEmitter {
             this.onImageUpload = this.onImageUpload;
         if (extensions)
             this.registerAllExtensions(extensions);
+        if (blocks)
+            this.updateBlockSettings(blocks);
+    }
+    updateBlockSettings(blocks) {
+        console.warn("updateBlockSettings");
+        Object.entries(blocks).forEach(([blockType, updatedSettings]) => {
+            updateBlockSettings(blockType, updatedSettings);
+        });
     }
     registerAllExtensions(extensions) {
         extensions.forEach((extension) => {

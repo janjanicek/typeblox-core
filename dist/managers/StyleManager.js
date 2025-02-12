@@ -1,4 +1,4 @@
-import { AVAILABLE_FONTS, CLASSES, EVENTS } from "../constants";
+import { AVAILABLE_FONTS, EVENTS, CLASSES } from "../constants";
 import { toCssStyle } from "../utils/css";
 import { EventEmitter } from "../classes/EventEmitter";
 export class StyleManager extends EventEmitter {

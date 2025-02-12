@@ -1,0 +1,11 @@
+import { BlockSettings, BlockType } from "./types";
+export declare const BLOCK_TYPES: Record<string, string>;
+export declare function addBlockType(blockName: string, blockKey: string): void;
+export declare function removeBlockType(blockName: string): void;
+export declare const AVAILABLE_BLOCKS: BlockType[];
+export declare function getAvailableBlocks(): string[];
+export declare function getBlockSettings(): Record<BlockType, BlockSettings>;
+export declare const DEFAULT_BLOCK_TYPE = "text";
+export declare const BLOCKS_SETTINGS: Record<BlockType, BlockSettings>;
+export declare function updateBlockSettings(blockType: BlockType, updatedSettings: Partial<BlockSettings>): void;
+export declare function getToolbars(): Record<BlockType, string>;

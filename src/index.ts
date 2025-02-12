@@ -1,10 +1,13 @@
-import { CLASSES, EVENTS } from "./constants";
+import { EVENTS, CLASSES } from "./constants";
+import { updateBlockSettings } from "./blockTypes";
 import {
   CustomRange,
   detectedStyles,
   imageUploadFunction,
   onChangeFunction,
   Extension,
+  BlockSettings,
+  BlockType,
 } from "./types";
 import { EventEmitter } from "events";
 import { Blox } from "./classes/Blox";
@@ -25,6 +28,7 @@ export interface TypeBloxInitOptions {
   onUpdate: onChangeFunction;
   onImageUpload?: imageUploadFunction;
   extensions?: Extension[] | null;
+  blocks?: Record<BlockType, Partial<BlockSettings>>;
 }
 
 class Typeblox extends EventEmitter {
@@ -117,9 +121,9 @@ class Typeblox extends EventEmitter {
       this.emit(EVENTS.blocksChanged, blocks);
     });
 
-    this.BloxManager.on(EVENTS.styleChange, (block) => {
-      this.emit(EVENTS.styleChange, block);
-    });
+    // this.BloxManager.on(EVENTS.styleChange, (block) => {
+    //   this.emit(EVENTS.styleChange, block);
+    // });
 
     this.StyleManager.on(EVENTS.styleChange, (block) => {
       this.emit(EVENTS.styleChange, block);
@@ -136,7 +140,7 @@ class Typeblox extends EventEmitter {
 
   // Public methods
   public init(options: TypeBloxInitOptions): void {
-    const { HTMLString, onUpdate, onImageUpload, extensions } = options;
+    const { HTMLString, onUpdate, onImageUpload, extensions, blocks } = options;
     if (HTMLString)
       this.blox().setBlox(this.elements().parseHTMLToBlocks(HTMLString));
     if (onUpdate) {
@@ -145,6 +149,17 @@ class Typeblox extends EventEmitter {
     }
     if (onImageUpload) this.onImageUpload = this.onImageUpload;
     if (extensions) this.registerAllExtensions(extensions);
+
+    if (blocks) this.updateBlockSettings(blocks);
+  }
+
+  private updateBlockSettings(
+    blocks: Record<BlockType, Partial<BlockSettings>>,
+  ): void {
+    console.warn("updateBlockSettings");
+    Object.entries(blocks).forEach(([blockType, updatedSettings]) => {
+      updateBlockSettings(blockType, updatedSettings);
+    });
   }
 
   private registerAllExtensions(extensions: Extension[]): void {

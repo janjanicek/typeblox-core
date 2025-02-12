@@ -1,6 +1,7 @@
-import { BlockType } from "../types";
+import { BlockType, EventCallback } from "../types";
 import { EventEmitter } from "./EventEmitter";
-import { BLOCKS_SETTINGS, BLOCK_TYPES, EVENTS } from "../constants";
+import { EVENTS } from "../constants";
+import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../blockTypes";
 import { TypingManager } from "../managers/TypingManager";
 import { StyleManager } from "../managers/StyleManager";
 import { PasteManager } from "../managers/PasteManager";
@@ -39,6 +40,7 @@ export class Blox extends EventEmitter {
   classes: string;
   attributes: string;
   isSelected: boolean;
+  _listeners?: Record<string, EventCallback>;
 
   constructor({
     onUpdate,
@@ -66,9 +68,16 @@ export class Blox extends EventEmitter {
     this.onUpdate = onUpdate;
     this.type = type ?? "text";
 
-    this.styles = style ?? "";
-    this.classes = classes ?? "";
-    this.attributes = attributes ?? "";
+    const defaultStyles = BLOCKS_SETTINGS[this.type].defaults.styles ?? "";
+    const defaultClasses = BLOCKS_SETTINGS[this.type].defaults.classes ?? "";
+    const defaultAttributes =
+      BLOCKS_SETTINGS[this.type].defaults.attributes ?? "";
+
+    this.styles = style ? `${style} ${defaultStyles}` : defaultStyles;
+    this.classes = classes ? `${classes} ${defaultClasses}` : defaultClasses;
+    this.attributes = attributes
+      ? `${attributes} ${defaultAttributes}`
+      : defaultAttributes;
     this.isSelected = false;
   }
 
@@ -456,7 +465,7 @@ export class Blox extends EventEmitter {
 
   sendUpdateStyleEvent(): void {
     this.emit(EVENTS.styleChange);
-    setTimeout(() => this.HistoryManager?.saveState(), 1000);
+    setTimeout(() => this.HistoryManager?.saveState(), 500);
   }
 
   sendUpdateBloxEvent(): void {

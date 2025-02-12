@@ -4,8 +4,7 @@
 
 import { BloxManager } from "../BloxManager";
 import { Blox } from "../../classes/Blox";
-import { HistoryManager } from "../HistoryManager";
-import { BLOCK_TYPES } from "../../constants";
+import { BLOCK_TYPES } from "../../blockTypes";
 
 const createMockBlockElement = (id: string, innerHTML: string) => {
   const element = document.createElement("div");

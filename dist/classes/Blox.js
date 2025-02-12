@@ -1,9 +1,11 @@
 import { EventEmitter } from "./EventEmitter";
-import { BLOCKS_SETTINGS, BLOCK_TYPES, EVENTS } from "../constants";
+import { EVENTS } from "../constants";
+import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../blockTypes";
 import { convertToCamelCase } from "../utils/css";
 import { isEmpty } from "../utils/elements";
 export class Blox extends EventEmitter {
     constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, HistoryManager, PasteManager, DOMManager, style, classes, attributes, }) {
+        var _a, _b, _c;
         super();
         this.updateContent = () => {
             var _a;
@@ -53,9 +55,14 @@ export class Blox extends EventEmitter {
         this.contentElement = this.getContentElement();
         this.onUpdate = onUpdate;
         this.type = type !== null && type !== void 0 ? type : "text";
-        this.styles = style !== null && style !== void 0 ? style : "";
-        this.classes = classes !== null && classes !== void 0 ? classes : "";
-        this.attributes = attributes !== null && attributes !== void 0 ? attributes : "";
+        const defaultStyles = (_a = BLOCKS_SETTINGS[this.type].defaults.styles) !== null && _a !== void 0 ? _a : "";
+        const defaultClasses = (_b = BLOCKS_SETTINGS[this.type].defaults.classes) !== null && _b !== void 0 ? _b : "";
+        const defaultAttributes = (_c = BLOCKS_SETTINGS[this.type].defaults.attributes) !== null && _c !== void 0 ? _c : "";
+        this.styles = style ? `${style} ${defaultStyles}` : defaultStyles;
+        this.classes = classes ? `${classes} ${defaultClasses}` : defaultClasses;
+        this.attributes = attributes
+            ? `${attributes} ${defaultAttributes}`
+            : defaultAttributes;
         this.isSelected = false;
     }
     getContentElement() {
@@ -351,7 +358,7 @@ export class Blox extends EventEmitter {
     }
     sendUpdateStyleEvent() {
         this.emit(EVENTS.styleChange);
-        setTimeout(() => { var _a; return (_a = this.HistoryManager) === null || _a === void 0 ? void 0 : _a.saveState(); }, 1000);
+        setTimeout(() => { var _a; return (_a = this.HistoryManager) === null || _a === void 0 ? void 0 : _a.saveState(); }, 500);
     }
     sendUpdateBloxEvent() {
         this.emit(EVENTS.blocksChanged);

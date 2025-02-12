@@ -1,14 +1,4 @@
-export type BlockType =
-  | "text"
-  | "code"
-  | "image"
-  | "headline1"
-  | "headline2"
-  | "headline3"
-  | "html"
-  | "numberedList"
-  | "bulletedList"
-  | "blockquote";
+export type BlockType = string;
 
 export interface detectedStyles {
   color: string | null;
@@ -45,5 +35,28 @@ export type Extension = {
   component?: Function;
   onClick?: () => void; // Refined the type to indicate a no-argument function returning void
   isActive?: Function;
-  iconName?: string;
+  icon?: string;
+  iconElement?: any;
 };
+
+export interface BlockDefaults {
+  classes?: string;
+  attributes?: string;
+  styles?: string;
+}
+
+export interface BlockSettings {
+  tag: string;
+  visibleName: string;
+  blockName: BlockType;
+  placeholder: string;
+  contentPattern: (content: string) => string;
+  description: string;
+  toolbar: string;
+  icon?: string;
+  iconElement?: any;
+  availableTypes: string[];
+  defaults: BlockDefaults;
+}
+
+export type EventCallback = (...args: any[]) => void;

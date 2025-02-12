@@ -1,5 +1,5 @@
 import type { TypingManager } from "./TypingManager";
-import { AVAILABLE_FONTS, CLASSES, EVENTS } from "../constants";
+import { AVAILABLE_FONTS, EVENTS, CLASSES } from "../constants";
 import { detectedStyles } from "../types";
 import { toCssStyle } from "../utils/css";
 import { DOMManager } from "./DOMManager";
