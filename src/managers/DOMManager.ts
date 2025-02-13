@@ -177,7 +177,8 @@ export class DOMManager {
       if (nestedBlock instanceof HTMLElement) {
         return nestedBlock;
       }
-      return activeElement.closest("[data-typeblox-id]");
+      const closedParent = activeElement.closest("[data-typeblox-id]");
+      if(closedParent instanceof HTMLElement) return closedParent;
     }
 
     const selection = window.getSelection();
