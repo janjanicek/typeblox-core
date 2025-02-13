@@ -125,6 +125,18 @@ export class DOMManager {
             .join("");
         this.getBlockElementById = (blockId) => document.querySelector(`[data-typeblox-id="${blockId}"]`);
         this.getBlockElement = () => {
+            const activeElement = document.activeElement;
+            if (activeElement instanceof HTMLElement &&
+                activeElement !== document.body) {
+                if (activeElement.hasAttribute("data-typeblox-id")) {
+                    return activeElement;
+                }
+                const nestedBlock = activeElement.querySelector("[data-typeblox-id]");
+                if (nestedBlock instanceof HTMLElement) {
+                    return nestedBlock;
+                }
+                return activeElement.closest("[data-typeblox-id]");
+            }
             const selection = window.getSelection();
             // Check if there's a valid selection and at least one range
             if (!selection || selection.rangeCount === 0)
@@ -263,7 +275,9 @@ export class DOMManager {
     getBlockFromEvent(event) {
         var _a, _b;
         const target = event.target;
-        const blockElement = (target === null || target === void 0 ? void 0 : target.closest("[data-typeblox-id]")) || null;
+        const blockElement = (target === null || target === void 0 ? void 0 : target.closest("[data-typeblox-id]")) ||
+            (target === null || target === void 0 ? void 0 : target.querySelector("[data-typeblox-id]")) ||
+            null;
         const blockId = (_a = blockElement === null || blockElement === void 0 ? void 0 : blockElement.dataset) === null || _a === void 0 ? void 0 : _a.typebloxId;
         if (!blockElement || !blockId)
             return null;

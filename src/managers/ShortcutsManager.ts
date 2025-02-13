@@ -1,5 +1,9 @@
 import { isEmpty } from "../utils/elements";
-import { BLOCK_TYPES, DEFAULT_BLOCK_TYPE } from "../blockTypes";
+import {
+  blocksWithoutSelection,
+  BLOCK_TYPES,
+  DEFAULT_BLOCK_TYPE,
+} from "../blockTypes";
 import { BloxManager } from "./BloxManager";
 import { DOMManager } from "./DOMManager";
 import { HistoryManager } from "./HistoryManager";
@@ -94,8 +98,9 @@ export class ShortcutsManager {
           const previousBlock = this.BloxManager?.getPreviousBlock(
             currentBlock.id,
           );
+          const isSelection = this.TypingManager?.hasTextSelection();
 
-          if (isCursorAtStart && blockElement) {
+          if (isCursorAtStart && blockElement && !isSelection) {
             event.preventDefault();
 
             if (hasContent && previousBlock?.id) {
@@ -118,7 +123,11 @@ export class ShortcutsManager {
           if (!blockElement) return;
 
           const selection = window.getSelection();
-          if (!selection || !selection.rangeCount) return;
+          if (
+            !blocksWithoutSelection.includes(currentBlock.type) &&
+            (!selection || !selection.rangeCount)
+          )
+            return;
 
           const isCursorAtEnd = this.TypingManager?.isCursorAtEnd(blockElement);
           const isCursorAtStart =
@@ -170,6 +179,14 @@ export class ShortcutsManager {
                   this.DOMManager?.splitElementBySelector("li");
                 }
               }
+              return;
+            }
+            case BLOCK_TYPES.image: {
+              // Add block when click enter on the selected image.
+              this.BloxManager?.addBlockAfter(
+                currentBlock.id,
+                DEFAULT_BLOCK_TYPE,
+              );
               return;
             }
             default: {

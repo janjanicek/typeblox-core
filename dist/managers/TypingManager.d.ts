@@ -13,4 +13,5 @@ export declare class TypingManager {
     isCursorAtEnd(container: HTMLElement): boolean;
     getFirstMeaningfulNode(container: HTMLElement): Node | null;
     getLastMeaningfulNode(container: HTMLElement): Node | null;
+    hasTextSelection(): boolean;
 }

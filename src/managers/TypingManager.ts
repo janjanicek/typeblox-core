@@ -330,4 +330,23 @@ export class TypingManager {
 
     return lastNode; // Return the last meaningful text node
   }
+
+  public hasTextSelection(): boolean {
+    const selection = window.getSelection();
+
+    if (!selection || selection.rangeCount === 0) {
+      return false; // No selection exists
+    }
+
+    const range = selection.getRangeAt(0);
+
+    // Ensure selection is within an editable element
+    if (!range || range.collapsed) {
+      return false; // Selection is collapsed (cursor only)
+    }
+
+    // Check if the selected text contains at least one non-whitespace character
+    const selectedText = range.toString().trim();
+    return selectedText.length > 0;
+  }
 }

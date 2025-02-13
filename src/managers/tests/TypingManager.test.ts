@@ -269,4 +269,107 @@ describe("TypingManager", () => {
 
     expect(lastTextNode).toBeNull();
   });
+
+  test("should return null if no meaningful text exists", () => {
+    document.body.innerHTML = `<div id="editor" contenteditable="true"><p></p><span> </span></div>`;
+
+    const container = document.getElementById("editor")!;
+    const lastTextNode = typingManager.getLastMeaningfulNode(container);
+
+    expect(lastTextNode).toBeNull();
+  });
+
+  describe("hasTextSelection function", () => {
+    let testElement: HTMLElement;
+
+    beforeEach(() => {
+      // Create a test element and add it to the DOM
+      testElement = document.createElement("div");
+      testElement.contentEditable = "true"; // Make it editable
+      testElement.innerHTML = "Hello, <strong>World</strong>!";
+      document.body.appendChild(testElement);
+    });
+
+    afterEach(() => {
+      document.body.innerHTML = ""; // Clean up after each test
+    });
+
+    test("should return false when there is no selection", () => {
+      expect(typingManager.hasTextSelection()).toBe(false);
+    });
+
+    test("should return false when only the cursor is placed", () => {
+      const range = document.createRange();
+      const selection = window.getSelection();
+
+      range.setStart(testElement.firstChild as Node, 0);
+      range.collapse(true); // Simulate a cursor placement
+
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+
+      expect(typingManager.hasTextSelection()).toBe(false);
+    });
+
+    test("should return true when a word is selected", () => {
+      const range = document.createRange();
+      const selection = window.getSelection();
+
+      // Select the word "Hello"
+      range.setStart(testElement.firstChild as Node, 0);
+      range.setEnd(testElement.firstChild as Node, 5);
+
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+
+      expect(typingManager.hasTextSelection()).toBe(true);
+    });
+
+    test("should return true when multiple words are selected", () => {
+      const range = document.createRange();
+      const selection = window.getSelection();
+
+      // Select "Hello, World"
+      range.setStart(testElement.firstChild as Node, 0);
+      range.setEnd(
+        testElement.lastChild as Node,
+        testElement.lastChild?.textContent?.length || 0,
+      );
+
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+
+      expect(typingManager.hasTextSelection()).toBe(true);
+    });
+
+    test("should return false when only spaces are selected", () => {
+      testElement.innerHTML = "   "; // Only spaces
+
+      const range = document.createRange();
+      const selection = window.getSelection();
+
+      range.setStart(testElement.firstChild as Node, 0);
+      range.setEnd(testElement.firstChild as Node, 3);
+
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+
+      expect(typingManager.hasTextSelection()).toBe(false);
+    });
+
+    test("should return false when selecting an empty element", () => {
+      testElement.innerHTML = ""; // Empty div
+
+      const range = document.createRange();
+      const selection = window.getSelection();
+
+      range.setStart(testElement, 0);
+      range.setEnd(testElement, 0);
+
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+
+      expect(typingManager.hasTextSelection()).toBe(false);
+    });
+  });
 });

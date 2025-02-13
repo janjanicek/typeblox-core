@@ -1,5 +1,6 @@
 import { BlockSettings, BlockType } from "./types";
 export declare const BLOCK_TYPES: Record<string, string>;
+export declare const blocksWithoutSelection: string[];
 export declare function addBlockType(blockName: string, blockKey: string): void;
 export declare function removeBlockType(blockName: string): void;
 export declare const AVAILABLE_BLOCKS: BlockType[];

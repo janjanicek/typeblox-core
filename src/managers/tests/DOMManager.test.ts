@@ -137,6 +137,8 @@ describe("DOMManager", () => {
       selection = createSelectionMock(range);
 
       jest.spyOn(window, "getSelection").mockReturnValue(selection);
+      if (document.activeElement)
+        (document.activeElement as HTMLElement).blur();
     });
 
     afterEach(() => {

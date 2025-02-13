@@ -10,6 +10,7 @@ export const BLOCK_TYPES = {
     numberedList: "numberedList",
     blockquote: "blockquote",
 };
+export const blocksWithoutSelection = [BLOCK_TYPES.image];
 export function addBlockType(blockName, blockKey) {
     BLOCK_TYPES[blockName] = blockKey;
 }

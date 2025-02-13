@@ -13,6 +13,8 @@ export const BLOCK_TYPES: Record<string, string> = {
   blockquote: "blockquote",
 };
 
+export const blocksWithoutSelection = [BLOCK_TYPES.image];
+
 export function addBlockType(blockName: string, blockKey: string) {
   BLOCK_TYPES[blockName] = blockKey;
 }

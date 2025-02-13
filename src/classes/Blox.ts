@@ -229,7 +229,9 @@ export class Blox extends EventEmitter {
     if (this.type === newType) return; // No change needed
 
     const wasList = this.isListType(this.type);
+    this.clearDefaults(); // removed old type defaults
     this.type = newType;
+    this.applyDefaults(); // apply new type default
 
     if (!wasList && this.isListType(newType)) {
       this.content = BLOCKS_SETTINGS[newType].contentPattern(this.content);
@@ -246,6 +248,60 @@ export class Blox extends EventEmitter {
     });
   }
 
+  clearDefaults() {
+    if (BLOCKS_SETTINGS[this.type].defaults.styles) {
+      const defaultStyles = this.getStyles(
+        BLOCKS_SETTINGS[this.type].defaults.styles,
+      );
+      Object.entries(defaultStyles).forEach(([key, value]) => {
+        if (this.getStyles()[key] === value) {
+          this.removeStyle(key);
+        }
+      });
+    }
+    if (BLOCKS_SETTINGS[this.type].defaults.attributes) {
+      const defaultAttributes = this.getAttributes(
+        BLOCKS_SETTINGS[this.type].defaults.attributes,
+      );
+      Object.entries(defaultAttributes).forEach(([key, value]) => {
+        if (this.getAttributes()[key] === value) {
+          this.removeAttribute(key);
+        }
+      });
+    }
+    if (BLOCKS_SETTINGS[this.type].defaults.classes) {
+      const defaultClasses = this.getClasses(
+        BLOCKS_SETTINGS[this.type].defaults.classes,
+      );
+      defaultClasses.forEach((classString: string) => {
+        this.removeClass(classString);
+      });
+    }
+  }
+
+  applyDefaults() {
+    if (BLOCKS_SETTINGS[this.type].defaults.styles) {
+      const defaultStyles = this.getStyles(
+        BLOCKS_SETTINGS[this.type].defaults.styles,
+      );
+      this.setStyles(defaultStyles);
+    }
+    if (BLOCKS_SETTINGS[this.type].defaults.attributes) {
+      const defaultAttributes = this.getAttributes(
+        BLOCKS_SETTINGS[this.type].defaults.attributes,
+      );
+      this.setAttributes(defaultAttributes);
+    }
+    if (BLOCKS_SETTINGS[this.type].defaults.classes) {
+      const defaultClasses = this.getClasses(
+        BLOCKS_SETTINGS[this.type].defaults.classes,
+      );
+      defaultClasses.forEach((classString: string) => {
+        this.addClass(classString);
+      });
+    }
+  }
+
   // Utility methods for better readability
   private isListType(type: BlockType): boolean {
     return (
@@ -255,11 +311,11 @@ export class Blox extends EventEmitter {
 
   private shouldClearContent(type: BlockType): boolean {
     const contentElement = this.getContentElement();
+    const isEmptyContent =
+      !contentElement || isEmpty(contentElement) || this.content.trim() === "/";
     return (
-      !contentElement ||
-      isEmpty(contentElement) ||
-      this.content.trim() === "/" ||
-      type === BLOCK_TYPES.code ||
+      isEmptyContent ||
+      (isEmptyContent && type === BLOCK_TYPES.code) ||
       type === BLOCK_TYPES.image
     );
   }
@@ -270,9 +326,10 @@ export class Blox extends EventEmitter {
   }
 
   // Getter for styles
-  public getStyles(): Record<string, string> {
+  public getStyles(stylesString?: string): Record<string, string> {
     const styleMap: Record<string, string> = {};
-    this.styles
+    const blockStyles = stylesString ?? this.styles;
+    blockStyles
       .split(";")
       .map((style) => style.trim())
       .filter((style) => style.length > 0)
@@ -337,8 +394,9 @@ export class Blox extends EventEmitter {
   }
 
   // Getter for classes
-  public getClasses(): string[] {
-    return this.classes.split(" ").filter((cls) => cls.trim());
+  public getClasses(classesString?: string): string[] {
+    const blockClasses = classesString ?? this.classes;
+    return blockClasses.split(" ").filter((cls) => cls.trim());
   }
 
   // Add a class
@@ -397,18 +455,20 @@ export class Blox extends EventEmitter {
   }
 
   // Getter for attributes
-  public getAttributes(): Record<string, string> {
+  public getAttributes(attributesString?: string): Record<string, string> {
     const attributesMap: Record<string, string> = {};
-    this.attributes
-      .split(";")
-      .map((attr) => attr.trim())
-      .filter((attr) => attr.length > 0)
-      .forEach((attr) => {
-        const [key, value] = attr.split("=").map((s) => s.trim());
-        if (key && value) {
-          attributesMap[key] = value.replace(/^"|"$/g, ""); // Remove quotes around the value
-        }
-      });
+    const blockAttributes = attributesString ?? this.attributes;
+
+    // Use a regex to correctly capture key="value" or key='value'
+    const regex = /([\w-]+)=["']?([^"']+)["']?/g;
+    let match;
+
+    while ((match = regex.exec(blockAttributes)) !== null) {
+      const key = match[1].trim();
+      const value = match[2].trim();
+      attributesMap[key] = value;
+    }
+
     return attributesMap;
   }
 
@@ -434,9 +494,9 @@ export class Blox extends EventEmitter {
       currentAttributes[key.trim()] = value.trim();
     });
 
-    // Convert the updated attributes back to a string
+    // Convert the updated attributes back to a string, ensuring all values use double quotes
     this.attributes = Object.entries(currentAttributes)
-      .map(([key, val]) => `${key}="${val}"`)
+      .map(([key, val]) => `${key}="${val.replace(/"/g, "&quot;")}"`)
       .join("; ");
 
     this.sendUpdateStyleEvent();
