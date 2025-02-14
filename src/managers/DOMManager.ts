@@ -178,7 +178,7 @@ export class DOMManager {
         return nestedBlock;
       }
       const closedParent = activeElement.closest("[data-typeblox-id]");
-      if(closedParent instanceof HTMLElement) return closedParent;
+      if (closedParent instanceof HTMLElement) return closedParent;
     }
 
     const selection = window.getSelection();
@@ -276,10 +276,18 @@ export class DOMManager {
 
   public getCurrentDOM = (): string => {
     const blocks = this.BloxManager?.getBlox() ?? [];
-    const clonedBlocks = blocks?.map((block) => new Blox({ ...block }));
+    const clonedBlocks = blocks?.map(
+      (block) =>
+        new Blox({
+          ...block,
+          style: block.styles,
+          classes: block.classes,
+          attributes: block.attributes,
+        }),
+    );
 
     clonedBlocks?.forEach((block) => {
-      block.updateContent();
+      block.updateContent(true); // update the content and removeSelection if exist.
     });
 
     return this.blocksToHTML(clonedBlocks);

@@ -141,8 +141,12 @@ class Typeblox extends EventEmitter {
   // Public methods
   public init(options: TypeBloxInitOptions): void {
     const { HTMLString, onUpdate, onImageUpload, extensions, blocks } = options;
-    if (HTMLString)
+    if (HTMLString) {
       this.blox().setBlox(this.elements().parseHTMLToBlocks(HTMLString));
+    } else {
+      const newBlock = this.BloxManager?.createBlox({});
+      if (newBlock) this.blox().setBlox([newBlock]);
+    }
     if (onUpdate) {
       this.onChange = onUpdate;
       this.BloxManager?.updateChange(onUpdate);

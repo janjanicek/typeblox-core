@@ -22,7 +22,9 @@ describe("BloxManager", () => {
   // Mocks for dependencies
   const mockOnUpdate = jest.fn();
   const mockTypingManager = {} as any;
-  const mockFormatManager = {} as any;
+  const mockStyleManager = {
+    updateCurrentStyles: jest.fn()
+  } as any;
   const mockPasteManager = {} as any;
 
   // Helper function to create mock Blox instances
@@ -33,7 +35,7 @@ describe("BloxManager", () => {
       content,
       onUpdate: mockOnUpdate,
       TypingManager: mockTypingManager,
-      StyleManager: mockFormatManager,
+      StyleManager: mockStyleManager,
       PasteManager: mockPasteManager,
       DOMManager: mockDOMManager,
       HistoryManager: mockHistoryManager,
@@ -57,7 +59,7 @@ describe("BloxManager", () => {
     bloxManager = new BloxManager(mockOnChange);
     bloxManager.setDependencies(
       mockTypingManager,
-      mockFormatManager,
+      mockStyleManager,
       mockPasteManager,
       mockDOMManager,
       mockHistoryManager,

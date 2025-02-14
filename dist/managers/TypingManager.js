@@ -137,6 +137,8 @@ export class TypingManager {
         if (!blockElement)
             return;
         const selectedElements = blockElement.querySelectorAll(`.${CLASSES.selected}`);
+        if (!selectedElements)
+            return;
         selectedElements.forEach((element) => {
             const parent = element.parentNode;
             if (element.innerHTML.trim() === "") {

@@ -65,7 +65,7 @@ export class ShortcutsManager {
                     const newBlock = (_h = this.BloxManager) === null || _h === void 0 ? void 0 : _h.createBlox({});
                     if (newBlock) {
                         (_j = this.BloxManager) === null || _j === void 0 ? void 0 : _j.setBlox([newBlock]);
-                        (_k = this.BloxManager) === null || _k === void 0 ? void 0 : _k.selectAllBlox(false);
+                        (_k = this.BloxManager) === null || _k === void 0 ? void 0 : _k.sendUpdateEvent();
                     }
                     return;
                 }

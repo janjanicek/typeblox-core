@@ -207,9 +207,9 @@ export class DOMManager {
         this.getCurrentDOM = () => {
             var _a, _b;
             const blocks = (_b = (_a = this.BloxManager) === null || _a === void 0 ? void 0 : _a.getBlox()) !== null && _b !== void 0 ? _b : [];
-            const clonedBlocks = blocks === null || blocks === void 0 ? void 0 : blocks.map((block) => new Blox(Object.assign({}, block)));
+            const clonedBlocks = blocks === null || blocks === void 0 ? void 0 : blocks.map((block) => new Blox(Object.assign(Object.assign({}, block), { style: block.styles, classes: block.classes, attributes: block.attributes })));
             clonedBlocks === null || clonedBlocks === void 0 ? void 0 : clonedBlocks.forEach((block) => {
-                block.updateContent();
+                block.updateContent(true); // update the content and removeSelection if exist.
             });
             return this.blocksToHTML(clonedBlocks);
         };

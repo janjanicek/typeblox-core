@@ -7,10 +7,13 @@ export class Blox extends EventEmitter {
     constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, HistoryManager, PasteManager, DOMManager, style, classes, attributes, }) {
         var _a, _b, _c;
         super();
-        this.updateContent = () => {
+        this.updateContent = (removeSelection = false) => {
             var _a;
             const liveElement = this.getContentElement();
+            const clonedElement = liveElement === null || liveElement === void 0 ? void 0 : liveElement.cloneNode(true);
             this.contentElement = liveElement;
+            if (removeSelection)
+                this.TypingManager.removeSelection(clonedElement);
             if (this.type === BLOCK_TYPES.image) {
                 // Special handling for images
                 const imageURL = this.getImageURL();
@@ -19,8 +22,8 @@ export class Blox extends EventEmitter {
                 return !isSame; // Return whether the content has changed
             }
             // Default handling for other types
-            const isSame = (liveElement === null || liveElement === void 0 ? void 0 : liveElement.innerHTML) === this.content;
-            this.content = isSame ? this.content : ((_a = liveElement === null || liveElement === void 0 ? void 0 : liveElement.innerHTML) !== null && _a !== void 0 ? _a : "");
+            const isSame = (clonedElement === null || clonedElement === void 0 ? void 0 : clonedElement.innerHTML) === this.content;
+            this.content = isSame ? this.content : ((_a = clonedElement === null || clonedElement === void 0 ? void 0 : clonedElement.innerHTML) !== null && _a !== void 0 ? _a : "");
             return !isSame; // Return whether the content has changed
         };
         this.getContent = () => {
@@ -399,7 +402,8 @@ export class Blox extends EventEmitter {
         this.sendUpdateBloxEvent();
     }
     sendUpdateStyleEvent() {
-        this.emit(EVENTS.styleChange);
+        var _a;
+        (_a = this.StyleManager) === null || _a === void 0 ? void 0 : _a.updateCurrentStyles(this);
         setTimeout(() => { var _a; return (_a = this.HistoryManager) === null || _a === void 0 ? void 0 : _a.saveState(); }, 500);
     }
     sendUpdateBloxEvent() {

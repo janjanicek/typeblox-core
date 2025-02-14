@@ -93,9 +93,12 @@ export class Blox extends EventEmitter {
     );
   }
 
-  public updateContent = () => {
+  public updateContent = (removeSelection: boolean = false) => {
     const liveElement = this.getContentElement();
+    const clonedElement = liveElement?.cloneNode(true) as HTMLElement;
     this.contentElement = liveElement;
+
+    if (removeSelection) this.TypingManager.removeSelection(clonedElement);
 
     if (this.type === BLOCK_TYPES.image) {
       // Special handling for images
@@ -106,10 +109,11 @@ export class Blox extends EventEmitter {
     }
 
     // Default handling for other types
-    const isSame = liveElement?.innerHTML === this.content;
-    this.content = isSame ? this.content : (liveElement?.innerHTML ?? "");
+    const isSame = clonedElement?.innerHTML === this.content;
+    this.content = isSame ? this.content : (clonedElement?.innerHTML ?? "");
     return !isSame; // Return whether the content has changed
   };
+
   public getContent = () => {
     this.updateContent();
     return this.content;
@@ -524,7 +528,7 @@ export class Blox extends EventEmitter {
   }
 
   sendUpdateStyleEvent(): void {
-    this.emit(EVENTS.styleChange);
+    this.StyleManager?.updateCurrentStyles(this);
     setTimeout(() => this.HistoryManager?.saveState(), 500);
   }
 
