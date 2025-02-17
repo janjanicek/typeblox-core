@@ -204,8 +204,8 @@ export const BLOCKS_SETTINGS = {
     numberedList: {
         tag: "ol",
         visibleName: "Numbered list",
-        blockName: BLOCK_TYPES.bulletedList,
-        description: "Create a simple bulleted list",
+        blockName: BLOCK_TYPES.numberedList,
+        description: "Create a simple numbered list",
         placeholder: "List",
         contentPattern: (content) => `<li>${content}</li>`,
         toolbar: "type | font | bold italic underline strikethrough | link | color bgColor | clearFormatting viewCode",

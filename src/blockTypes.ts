@@ -219,8 +219,8 @@ export const BLOCKS_SETTINGS: Record<BlockType, BlockSettings> = {
   numberedList: {
     tag: "ol",
     visibleName: "Numbered list",
-    blockName: BLOCK_TYPES.bulletedList,
-    description: "Create a simple bulleted list",
+    blockName: BLOCK_TYPES.numberedList,
+    description: "Create a simple numbered list",
     placeholder: "List",
     contentPattern: (content: string) => `<li>${content}</li>`,
     toolbar:
