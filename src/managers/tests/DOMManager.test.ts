@@ -4,6 +4,7 @@ import { BloxManager } from "../../managers/BloxManager";
 import { createRangeMock } from "./mocks/RangeMock";
 import { createSelectionMock } from "./mocks/SelectionMock";
 import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../../blockTypes";
+import { createDOMManagerMock } from "./mocks/DOMManagerMock";
 
 jest.mock("../../managers/BloxManager");
 
@@ -70,7 +71,7 @@ describe("DOMManager", () => {
           TypingManager: jest.fn() as any,
           StyleManager: jest.fn() as any,
           PasteManager: jest.fn() as any,
-          DOMManager: jest.fn() as any,
+          DOMManager: createDOMManagerMock(),
           HistoryManager: jest.fn() as any,
           style: "color: red;",
           classes: "example-class",
@@ -94,7 +95,7 @@ describe("DOMManager", () => {
           TypingManager: jest.fn() as any,
           StyleManager: jest.fn() as any,
           PasteManager: jest.fn() as any,
-          DOMManager: jest.fn() as any,
+          DOMManager: createDOMManagerMock(),
           HistoryManager: jest.fn() as any,
         }),
       ];

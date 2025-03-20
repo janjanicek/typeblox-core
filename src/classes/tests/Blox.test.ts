@@ -8,8 +8,8 @@ import { StyleManager } from "../../managers/StyleManager";
 import { PasteManager } from "../../managers/PasteManager";
 import { HistoryManager } from "../../managers/HistoryManager";
 import { DOMManager } from "../../managers/DOMManager";
-import { EVENTS } from "../../constants";
 import { BLOCK_TYPES, updateBlockSettings } from "../../blockTypes";
+import { createDOMManagerMock } from "../../managers/tests/mocks/DOMManagerMock";
 
 jest.mock("../../managers/TypingManager");
 jest.mock("../../managers/StyleManager");
@@ -30,7 +30,7 @@ describe("Blox Class", () => {
       TypingManager: new TypingManager(),
       StyleManager: new StyleManager(),
       PasteManager: new PasteManager(),
-      DOMManager: new DOMManager(),
+      DOMManager: createDOMManagerMock() as DOMManager,
       HistoryManager: new HistoryManager(),
       style: "color: red; font-size: 16px",
       classes: "class1 class2",

@@ -9,6 +9,7 @@ import { BloxManager } from "./managers/BloxManager";
 import { PasteManager } from "./managers/PasteManager";
 import { ExtensionsManager } from "./managers/ExtensionsManager";
 import { LinkManager } from "./managers/LinkManager";
+import { EditorManager } from "./managers/EditorManager";
 export interface TypeBloxInitOptions {
     elementSelector?: string;
     HTMLString: string;
@@ -16,6 +17,7 @@ export interface TypeBloxInitOptions {
     onImageUpload?: imageUploadFunction;
     extensions?: Extension[] | null;
     blocks?: Record<BlockType, Partial<BlockSettings>>;
+    editorContainer?: string;
 }
 declare class Typeblox extends EventEmitter {
     private HistoryManager;
@@ -27,6 +29,7 @@ declare class Typeblox extends EventEmitter {
     private ExtensionsManager;
     private ShortcutsManager;
     private LinkManager;
+    private EditorManager;
     onChange: onChangeFunction;
     onImageUpload: imageUploadFunction;
     private currentSelection;
@@ -44,10 +47,10 @@ declare class Typeblox extends EventEmitter {
     link(): LinkManager;
     paste(): PasteManager;
     history(): HistoryManager;
+    editor(): EditorManager;
     getBlockById(id: string | undefined): Blox | undefined;
     getBlockElementById(id: string | undefined): HTMLElement | null;
     getSelectionStyle(): detectedStyles;
-    getSelectionElement(): HTMLElement | null;
     unselect(element: HTMLElement | null, callBack?: () => void): void;
     select(range: Range, callBack?: () => void): void;
     private executeCallback;

@@ -1,11 +1,13 @@
 import { Blox } from "../classes/Blox";
 import type { BloxManager } from "./BloxManager";
 import { TypingManager } from "./TypingManager";
+import { EditorManager } from "./EditorManager";
 export declare class DOMManager {
     private BloxManager;
     private TypingManager;
-    constructor(initialBloxManager?: BloxManager, initialTypingManager?: TypingManager);
-    setDependencies(BloxManager: BloxManager, TypingManager: TypingManager): void;
+    private EditorManager;
+    constructor(initialBloxManager?: BloxManager, initialTypingManager?: TypingManager, initialEditorManager?: EditorManager);
+    setDependencies(BloxManager: BloxManager, TypingManager: TypingManager, EditorManager: EditorManager): void;
     removeElement: (matchingParent: Element) => void;
     sanitizeHTML: (html: string) => string;
     private isEmptyContent;

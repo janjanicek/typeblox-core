@@ -28,3 +28,19 @@ export const allowedAttributes = [
     "width",
     "height",
 ];
+export const DEFAULT_STYLES = {
+    color: null,
+    backgroundColor: null,
+    isBold: false,
+    isItalic: false,
+    isUnderline: false,
+    isStrikeout: false,
+    fontFamily: null,
+    isH1: false,
+    isH2: false,
+    isH3: false,
+    isParagraph: false,
+    isCode: false,
+    isLink: false,
+    textAlign: "left",
+};

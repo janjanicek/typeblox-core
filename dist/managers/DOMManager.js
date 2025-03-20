@@ -2,9 +2,10 @@ import { Blox } from "../classes/Blox";
 import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../blockTypes";
 import { getAllowedAttributes } from "../utils/attributes";
 export class DOMManager {
-    constructor(initialBloxManager, initialTypingManager) {
+    constructor(initialBloxManager, initialTypingManager, initialEditorManager) {
         this.BloxManager = null;
         this.TypingManager = null;
+        this.EditorManager = null;
         this.removeElement = (matchingParent) => {
             const parentElement = matchingParent.parentElement;
             if (!parentElement) {
@@ -125,9 +126,13 @@ export class DOMManager {
             .join("");
         this.getBlockElementById = (blockId) => document.querySelector(`[data-typeblox-id="${blockId}"]`);
         this.getBlockElement = () => {
+            var _a, _b;
             const activeElement = document.activeElement;
             if (activeElement instanceof HTMLElement &&
-                activeElement !== document.body) {
+                activeElement !== document.body &&
+                ((_a = this.EditorManager) === null || _a === void 0 ? void 0 : _a.editorContainer) &&
+                activeElement !==
+                    document.querySelector((_b = this.EditorManager) === null || _b === void 0 ? void 0 : _b.editorContainer)) {
                 if (activeElement.hasAttribute("data-typeblox-id")) {
                     return activeElement;
                 }
@@ -209,7 +214,7 @@ export class DOMManager {
             const blocks = (_b = (_a = this.BloxManager) === null || _a === void 0 ? void 0 : _a.getBlox()) !== null && _b !== void 0 ? _b : [];
             const clonedBlocks = blocks === null || blocks === void 0 ? void 0 : blocks.map((block) => new Blox(Object.assign(Object.assign({}, block), { style: block.styles, classes: block.classes, attributes: block.attributes })));
             clonedBlocks === null || clonedBlocks === void 0 ? void 0 : clonedBlocks.forEach((block) => {
-                block.updateContent(true); // update the content and removeSelection if exist.
+                block.updateContent(); // update the content and removeSelection if exist.
             });
             return this.blocksToHTML(clonedBlocks);
         };
@@ -269,10 +274,14 @@ export class DOMManager {
         if (initialTypingManager) {
             this.TypingManager = initialTypingManager;
         }
+        if (initialEditorManager) {
+            this.EditorManager = initialEditorManager;
+        }
     }
-    setDependencies(BloxManager, TypingManager) {
+    setDependencies(BloxManager, TypingManager, EditorManager) {
         this.BloxManager = BloxManager;
         this.TypingManager = TypingManager;
+        this.EditorManager = EditorManager;
     }
     getBlockFromEvent(event) {
         var _a, _b;

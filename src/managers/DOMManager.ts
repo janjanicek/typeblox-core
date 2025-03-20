@@ -4,15 +4,18 @@ import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../blockTypes";
 import type { BloxManager } from "./BloxManager";
 import { getAllowedAttributes } from "../utils/attributes";
 import { TypingManager } from "./TypingManager";
-import { BlockType } from "src/types";
+import { BlockType, JSONNode } from "../types";
+import { EditorManager } from "./EditorManager";
 
 export class DOMManager {
   private BloxManager: BloxManager | null = null;
   private TypingManager: TypingManager | null = null;
+  private EditorManager: EditorManager | null = null;
 
   constructor(
     initialBloxManager?: BloxManager,
     initialTypingManager?: TypingManager,
+    initialEditorManager?: EditorManager,
   ) {
     if (initialBloxManager) {
       this.BloxManager = initialBloxManager;
@@ -20,11 +23,19 @@ export class DOMManager {
     if (initialTypingManager) {
       this.TypingManager = initialTypingManager;
     }
+    if (initialEditorManager) {
+      this.EditorManager = initialEditorManager;
+    }
   }
 
-  setDependencies(BloxManager: BloxManager, TypingManager: TypingManager) {
+  setDependencies(
+    BloxManager: BloxManager,
+    TypingManager: TypingManager,
+    EditorManager: EditorManager,
+  ) {
     this.BloxManager = BloxManager;
     this.TypingManager = TypingManager;
+    this.EditorManager = EditorManager;
   }
 
   public removeElement = (matchingParent: Element): void => {
@@ -168,7 +179,10 @@ export class DOMManager {
     const activeElement = document.activeElement;
     if (
       activeElement instanceof HTMLElement &&
-      activeElement !== document.body
+      activeElement !== document.body &&
+      this.EditorManager?.editorContainer &&
+      activeElement !==
+        document.querySelector(this.EditorManager?.editorContainer)
     ) {
       if (activeElement.hasAttribute("data-typeblox-id")) {
         return activeElement;
@@ -287,7 +301,7 @@ export class DOMManager {
     );
 
     clonedBlocks?.forEach((block) => {
-      block.updateContent(true); // update the content and removeSelection if exist.
+      block.updateContent(); // update the content and removeSelection if exist.
     });
 
     return this.blocksToHTML(clonedBlocks);

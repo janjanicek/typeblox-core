@@ -1,34 +1,19 @@
 import { isEmpty } from "../utils/elements";
 import { CLASSES } from "../constants";
+import { DOMManager } from "./DOMManager";
 
 export class TypingManager {
-  private lastRange: Range | null = null;
+  private DOMManager: DOMManager | null = null;
 
-  public saveSelectionRange() {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) {
-      return null; // No selection or cursor
-    }
+  public lastSelectionData: {
+    blockElementId: string | undefined;
+    startOffset: number;
+    endOffset: number;
+    isCursorOnly: boolean;
+  } | null = null;
 
-    const range = selection.getRangeAt(0); // Get the current selection range
-    this.lastRange = range;
-  }
-
-  public restoreSelectionRange() {
-    if (!this.lastRange) {
-      return; // Nothing to restore
-    }
-
-    const selection = window.getSelection();
-    if (!selection) {
-      return;
-    }
-    selection.removeAllRanges();
-    const range = document.createRange();
-    range.setStart(this.lastRange.startContainer, this.lastRange.startOffset);
-    range.setEnd(this.lastRange.endContainer, this.lastRange.endOffset);
-
-    selection.addRange(range);
+  setDependencies(DOMManager: DOMManager) {
+    this.DOMManager = DOMManager;
   }
 
   public mergeConsecutiveStyledElements(blockElement: HTMLElement): void {
@@ -77,49 +62,6 @@ export class TypingManager {
     }
   }
 
-  createSelectedElement(range?: Range): void {
-    const selection = window.getSelection();
-    if (!selection) return;
-
-    let customRange = range || selection.getRangeAt(0); // Get current selection if no range is provided
-    if (!customRange) return;
-
-    const commonAncestor = customRange.commonAncestorContainer;
-
-    if (
-      commonAncestor.nodeType === Node.ELEMENT_NODE &&
-      commonAncestor.nodeName === "UL"
-    ) {
-      const selectedNodes = Array.from(customRange.cloneContents().childNodes);
-
-      selectedNodes.forEach((node) => {
-        if (node.nodeName === "LI") {
-          const wrapper = document.createElement("span");
-          wrapper.className = CLASSES.selected;
-
-          // Wrap the contents of the <li> item
-          wrapper.appendChild(node.cloneNode(true));
-          node.parentNode?.replaceChild(wrapper, node);
-        }
-      });
-      return;
-    }
-
-    const wrapper = document.createElement("span");
-    wrapper.className = CLASSES.selected;
-    wrapper.appendChild(customRange.extractContents());
-    customRange.insertNode(wrapper);
-  }
-
-  getSelectedElement(
-    wrapper: Element | Document = document,
-  ): HTMLElement | null {
-    const selectionElement = wrapper.querySelector(
-      `.${CLASSES.selected}`,
-    ) as HTMLElement;
-    return selectionElement;
-  }
-
   getCursorElement() {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
@@ -138,68 +80,12 @@ export class TypingManager {
     return (this.getCursorElement() as HTMLElement)?.closest(selector);
   }
 
-  selectAllTextInSelectedElement(): void {
-    let selectedElement = this.getSelectedElement();
-    if (!selectedElement) {
-      this.createSelectedElement();
-      selectedElement = this.getSelectedElement();
+  removeSelection() {
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed) {
+      selection.removeAllRanges(); // Ensure the selection is fully cleared
     }
-
-    if (!selectedElement) {
-      console.warn("No .selected element found.");
-      return;
-    }
-
-    // Create a new range
-    const range = document.createRange();
-
-    try {
-      // Set the range to start at the beginning and end at the last character of the `.selected` element
-      range.selectNodeContents(selectedElement);
-
-      // Clear any existing selections
-      const selection = window.getSelection();
-      if (selection) {
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-    } catch (error) {
-      console.error("Error selecting text:", error);
-    }
-  }
-
-  removeSelection(blockElement: HTMLElement | null) {
-    if (!blockElement) return;
-
-    const selectedElements = blockElement.querySelectorAll(
-      `.${CLASSES.selected}`,
-    );
-
-    if (!selectedElements) return;
-
-    selectedElements.forEach((element) => {
-      const parent = element.parentNode;
-
-      if (element.innerHTML.trim() === "") {
-        // remove empty selected element
-        if (element.innerHTML === " ") {
-          const spaceNode = document.createTextNode(" ");
-          parent?.replaceChild(spaceNode, element);
-        } else {
-          // Otherwise, remove the empty selected element
-          element.remove();
-        }
-        return;
-      }
-
-      while (element.firstChild) {
-        parent?.insertBefore(element.firstChild, element);
-      }
-      parent?.removeChild(element);
-    });
-
-    this.mergeConsecutiveStyledElements(blockElement);
-  }
+  }  
 
   isCursorAtStart(container: HTMLElement): boolean {
     const selection = window.getSelection();
@@ -352,4 +238,144 @@ export class TypingManager {
     const selectedText = range.toString().trim();
     return selectedText.length > 0;
   }
+
+  public getSelectedElement(): Element | null {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return null;
+    const range = selection.getRangeAt(0);
+  
+    // Determine the block container (assumed to have a data attribute, e.g. data-typeblox-editor)
+    const commonAncestor = range.commonAncestorContainer;
+    let blockContainer: HTMLElement | null = null;
+    if (commonAncestor instanceof HTMLElement) {
+      blockContainer = commonAncestor.closest("[data-typeblox-editor]");
+    } else if (commonAncestor.parentElement) {
+      blockContainer = commonAncestor.parentElement.closest("[data-typeblox-editor]");
+    }    
+  
+    // Build the chain of parent elements for the start container.
+    const getParentChain = (node: Node): HTMLElement[] => {
+      const chain: HTMLElement[] = [];
+      while (node) {
+        if (node instanceof HTMLElement) {
+          chain.push(node);
+        }
+        node = node.parentNode!;
+      }
+      return chain;
+    };
+  
+    const startChain = getParentChain(range.startContainer);
+    const endChain = getParentChain(range.endContainer);
+  
+    // Find the lowest common ancestor (LCA) between start and end chains.
+    let lca: HTMLElement | null = null;
+    for (const el of startChain) {
+      if (endChain.includes(el)) {
+        lca = el;
+        break;
+      }
+    }
+    if (!lca) return null;
+  
+    // If the LCA is the block container, we may be too high.
+    // In that case, we want to return the immediate child of the block that is on the start chain.
+    if (blockContainer && lca === blockContainer) {
+      // Find the element in the start chain whose parent is the block container.
+      const candidate = startChain.find((el) => el.parentElement === blockContainer);
+      if (candidate) {
+        console.warn("getSelectedElement", candidate);
+        return candidate;
+      }
+    }
+
+    console.warn("getSelectedElement", lca);
+  
+    return lca;
+  }  
+   
+public saveSelection() {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) {
+    console.warn("[TypingManager] No selection found.");
+    return;
+  }
+
+  const range = selection.getRangeAt(0);
+  const blockElement = this.DOMManager?.getBlockElement();
+  if (!blockElement) {
+    console.warn("[TypingManager] No valid block element found.");
+    return;
+  }
+
+  // Clone the range and select the full content of the block.
+  const preSelectionRange = range.cloneRange();
+  preSelectionRange.selectNodeContents(blockElement);
+  preSelectionRange.setEnd(range.startContainer, range.startOffset);
+
+  // Compute global offsets: startOffset is the length of the text before the selection,
+  // and endOffset is startOffset plus the length of the selected text.
+  const startOffset = preSelectionRange.toString().length;
+  const endOffset = startOffset + range.toString().length;
+
+  this.lastSelectionData = {
+    blockElementId: blockElement.dataset.typebloxId || undefined,
+    startOffset,
+    endOffset,
+    isCursorOnly: range.collapsed,
+  };
+}
+
+public restoreSelection(justCollapsed = false) {
+  if (!this.lastSelectionData) return;
+
+  const { blockElementId, startOffset, endOffset, isCursorOnly } = this.lastSelectionData;
+  if (!blockElementId) return;
+
+  const blockElement = this.DOMManager?.getBlockElementById(blockElementId);
+  if (!blockElement) return;
+
+  const range = document.createRange();
+  let currentOffset = 0;
+  let startNode: Text | null = null;
+  let endNode: Text | null = null;
+  let startTextOffset = 0;
+  let endTextOffset = 0;
+
+  // Walk through all text nodes in the block to find the ones containing the saved offsets.
+  const walker = document.createTreeWalker(blockElement, NodeFilter.SHOW_TEXT, null);
+  while (walker.nextNode()) {
+    const node = walker.currentNode as Text;
+    const nodeLength = node.length;
+
+    if (!startNode && currentOffset + nodeLength >= startOffset) {
+      startNode = node;
+      startTextOffset = startOffset - currentOffset;
+    }
+
+    if (!endNode && currentOffset + nodeLength >= endOffset) {
+      endNode = node;
+      endTextOffset = endOffset - currentOffset;
+      break;
+    }
+
+    currentOffset += nodeLength;
+  }
+
+  if (!startNode) return;
+
+  range.setStart(startNode, startTextOffset);
+  if (isCursorOnly || !endNode) {
+    range.collapse(true);
+  } else {
+    range.setEnd(endNode, endTextOffset);
+  }
+
+  if(!isCursorOnly && justCollapsed) return;
+
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+}
+
 }

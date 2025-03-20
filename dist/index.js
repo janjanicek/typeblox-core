@@ -1,4 +1,4 @@
-import { EVENTS, CLASSES } from "./constants";
+import { EVENTS } from "./constants";
 import { updateBlockSettings } from "./blockTypes";
 import { EventEmitter } from "events";
 import { StyleManager } from "./managers/StyleManager";
@@ -11,6 +11,7 @@ import { PasteManager } from "./managers/PasteManager";
 import { ExtensionsManager } from "./managers/ExtensionsManager";
 import { ShortcutsManager } from "./managers/ShortcutsManager";
 import { LinkManager } from "./managers/LinkManager";
+import { EditorManager } from "./managers/EditorManager";
 class Typeblox extends EventEmitter {
     isSameSelection(newStart, newEnd) {
         const isSame = this.currentSelection.start === newStart &&
@@ -59,6 +60,7 @@ class Typeblox extends EventEmitter {
                 ? this.elements().parseHTMLToBlocks(newContent)
                 : this.blox().getBlox();
             this.blox().setBlox(recoveredStructure, isHistoryOperation);
+            this.editor().refresh();
             this.emit(EVENTS.blocksChanged, recoveredStructure);
         };
         this.HistoryManager = new HistoryManager(25);
@@ -70,20 +72,22 @@ class Typeblox extends EventEmitter {
         this.ExtensionsManager = new ExtensionsManager();
         this.ShortcutsManager = new ShortcutsManager();
         this.LinkManager = new LinkManager();
+        this.EditorManager = new EditorManager();
         this.PasteManager.setDependencies(this.DOMManager, this.BloxManager);
         this.StyleManager.setDependencies(this.DOMManager, this.TypingManager, this.LinkManager);
         this.BloxManager.setDependencies(this.TypingManager, this.StyleManager, this.PasteManager, this.DOMManager, this.HistoryManager);
-        this.DOMManager.setDependencies(this.BloxManager, this.TypingManager);
+        this.DOMManager.setDependencies(this.BloxManager, this.TypingManager, this.EditorManager);
+        this.TypingManager.setDependencies(this.DOMManager);
         this.HistoryManager.setDependencies(this.DOMManager);
+        this.EditorManager.setDependencies(this.BloxManager, this.TypingManager);
         this.ShortcutsManager.setDependencies(this.BloxManager, this.DOMManager, this.TypingManager, this.HistoryManager);
         this.BloxManager.on(EVENTS.blocksChanged, (blocks) => {
             this.emit(EVENTS.blocksChanged, blocks);
+            this.editor().refresh();
         });
-        // this.BloxManager.on(EVENTS.styleChange, (block) => {
-        //   this.emit(EVENTS.styleChange, block);
-        // });
         this.StyleManager.on(EVENTS.styleChange, (block) => {
             this.emit(EVENTS.styleChange, block);
+            this.editor().refresh();
         });
         this.HistoryManager.on(EVENTS.historyChange, (newState, isUndo) => {
             if (newState) {
@@ -95,7 +99,7 @@ class Typeblox extends EventEmitter {
     // Public methods
     init(options) {
         var _a, _b;
-        const { HTMLString, onUpdate, onImageUpload, extensions, blocks } = options;
+        const { HTMLString, onUpdate, onImageUpload, extensions, blocks, editorContainer, } = options;
         if (HTMLString) {
             this.blox().setBlox(this.elements().parseHTMLToBlocks(HTMLString));
         }
@@ -114,6 +118,9 @@ class Typeblox extends EventEmitter {
             this.registerAllExtensions(extensions);
         if (blocks)
             this.updateBlockSettings(blocks);
+        if (editorContainer) {
+            this.editor().createEditorContent(editorContainer);
+        }
     }
     updateBlockSettings(blocks) {
         console.warn("updateBlockSettings");
@@ -131,6 +138,7 @@ class Typeblox extends EventEmitter {
         this.ShortcutsManager.unregisterShortcuts();
         this.onChange = () => { };
         removeListeners(this.detectSelection);
+        this.editor().clearEditor();
     }
     selection() {
         return this.TypingManager;
@@ -156,6 +164,9 @@ class Typeblox extends EventEmitter {
     history() {
         return this.HistoryManager;
     }
+    editor() {
+        return this.EditorManager;
+    }
     getBlockById(id) {
         return this.blox().getBlockById(id);
     }
@@ -167,19 +178,12 @@ class Typeblox extends EventEmitter {
     getSelectionStyle() {
         return this.style().getStyle();
     }
-    getSelectionElement() {
-        const blockElement = this.DOMManager.getBlockElement();
-        if (blockElement) {
-            return blockElement.querySelector(`.${CLASSES.selected}`);
-        }
-        return null;
-    }
     unselect(element, callBack) {
         let currentSelection = element;
         if (!currentSelection)
-            currentSelection = this.getSelectionElement();
+            currentSelection = this.selection().getSelectedElement();
         try {
-            this.TypingManager.removeSelection(currentSelection);
+            this.TypingManager.removeSelection();
         }
         catch (error) {
             console.error("Error removing selection:", error);
@@ -190,7 +194,7 @@ class Typeblox extends EventEmitter {
     }
     select(range, callBack) {
         try {
-            this.TypingManager.createSelectedElement(range);
+            this.TypingManager.saveSelection();
         }
         catch (error) {
             console.error("Error creating selected element:", error);

@@ -29,6 +29,13 @@ export type Extension = {
     icon?: string;
     iconElement?: any;
 };
+export type JSONNode = {
+    type: string;
+    content?: string;
+    format?: string;
+    href?: string;
+    children?: JSONNode[];
+};
 export interface BlockDefaults {
     classes?: string;
     attributes?: string;

@@ -12,6 +12,25 @@ describe("StyleManager", () => {
   let mockDOMManager: jest.Mocked<DOMManager>;
   let mockLinkManager: jest.Mocked<LinkManager>;
 
+  let mockRange: Range;
+  let mockSelection: Selection;
+
+  const setupMockSelection = (targetElement: HTMLElement) => {
+    mockRange = document.createRange();
+    mockRange.selectNodeContents(targetElement);
+
+    mockSelection = {
+      rangeCount: 1,
+      getRangeAt: jest.fn(() => mockRange),
+      removeAllRanges: jest.fn(),
+      addRange: jest.fn(),
+      toString: jest.fn(() => targetElement.textContent?.trim()),
+    } as unknown as Selection;
+
+    jest.spyOn(window, "getSelection").mockReturnValue(mockSelection);
+    mockTypingManager.getSelectedElement.mockReturnValue(targetElement);
+  };
+
   beforeEach(() => {
     // Mock TypingManager
     mockTypingManager = {
@@ -58,15 +77,15 @@ describe("StyleManager", () => {
       styleManager.applyFormat("b");
 
       expect(mockDOMManager.getBlockElement).toHaveBeenCalled();
-      expect(mockTypingManager.getSelectedElement).toHaveBeenCalledWith(
-        mockContentElement,
-      );
+      expect(mockTypingManager.getSelectedElement).not.toHaveBeenCalled();
     });
 
     it("should wrap the selected text with a tag and apply styles", () => {
       const mockContentElement = document.createElement("div");
       const mockSelectedElement = document.createElement("span");
       mockSelectedElement.textContent = "Sample Text";
+
+      setupMockSelection(mockSelectedElement);
 
       mockDOMManager.getBlockElement.mockReturnValue(mockContentElement);
       mockTypingManager.getSelectedElement.mockReturnValue(mockSelectedElement);
@@ -89,9 +108,7 @@ describe("StyleManager", () => {
 
       styleManager.unapplyFormat("b");
 
-      expect(mockTypingManager.getSelectedElement).toHaveBeenCalledWith(
-        document,
-      );
+      expect(mockTypingManager.getSelectedElement).toHaveBeenCalled();
     });
 
     it("should remove a matching parent tag", () => {
@@ -245,14 +262,11 @@ describe("StyleManager", () => {
     beforeEach(() => {
       container = document.createElement("div");
       document.body.appendChild(container);
-
-      mockTypingManager.getSelectedElement.mockReset();
-      mockTypingManager.getCursorElement.mockReset();
       consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     });
 
     afterEach(() => {
-      consoleWarnSpy.mockRestore();
+      jest.restoreAllMocks();
     });
 
     it("should remove all formatting tags while preserving text content", () => {
@@ -261,8 +275,8 @@ describe("StyleManager", () => {
           <b>Bold</b> and <i>Italic</i> text with <u>Underline</u>.
         </p>
       `;
-
-      mockTypingManager.getSelectedElement.mockReturnValue(container);
+      const paragraph = container.querySelector("p") as HTMLElement;
+      setupMockSelection(paragraph);
 
       styleManager.clearFormat();
 
@@ -278,8 +292,8 @@ describe("StyleManager", () => {
           <b><u>Bold and Underlined</u></b> text.
         </p>
       `;
-
-      mockTypingManager.getSelectedElement.mockReturnValue(container);
+      const paragraph = container.querySelector("p") as HTMLElement;
+      setupMockSelection(paragraph);
 
       styleManager.clearFormat();
 
@@ -295,8 +309,8 @@ describe("StyleManager", () => {
           <span style="color: red;">Red Text</span> and <mark>highlighted text</mark>.
         </p>
       `;
-
-      mockTypingManager.getSelectedElement.mockReturnValue(container);
+      const paragraph = container.querySelector("p") as HTMLElement;
+      setupMockSelection(paragraph);
 
       styleManager.clearFormat();
 
@@ -312,8 +326,8 @@ describe("StyleManager", () => {
           <b><i><u>Deeply nested</u></i></b> text.
         </div>
       `;
-
-      mockTypingManager.getSelectedElement.mockReturnValue(container);
+      const div = container.querySelector("div") as HTMLElement;
+      setupMockSelection(div);
 
       styleManager.clearFormat();
 
@@ -340,8 +354,8 @@ describe("StyleManager", () => {
           Part 1<span> Part 2</span> Part 3.
         </p>
       `;
-
-      mockTypingManager.getSelectedElement.mockReturnValue(container);
+      const paragraph = container.querySelector("p") as HTMLElement;
+      setupMockSelection(paragraph);
 
       styleManager.clearFormat();
 

@@ -7,13 +7,11 @@ export class Blox extends EventEmitter {
     constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, HistoryManager, PasteManager, DOMManager, style, classes, attributes, }) {
         var _a, _b, _c;
         super();
-        this.updateContent = (removeSelection = false) => {
+        this.updateContent = () => {
             var _a;
             const liveElement = this.getContentElement();
             const clonedElement = liveElement === null || liveElement === void 0 ? void 0 : liveElement.cloneNode(true);
             this.contentElement = liveElement;
-            if (removeSelection)
-                this.TypingManager.removeSelection(clonedElement);
             if (this.type === BLOCK_TYPES.image) {
                 // Special handling for images
                 const imageURL = this.getImageURL();
@@ -83,12 +81,13 @@ export class Blox extends EventEmitter {
         return result;
     }
     beforeToggle() {
-        this.TypingManager.saveSelectionRange();
-        this.TypingManager.restoreSelectionRange();
+        this.TypingManager.saveSelection();
     }
     afterToggle() {
-        this.TypingManager.selectAllTextInSelectedElement();
-        this.sendUpdateStyleEvent();
+        requestAnimationFrame(() => {
+            this.TypingManager.restoreSelection(true);
+            this.sendUpdateStyleEvent();
+        });
     }
     toggleBold() {
         return this.executeWithCallbacks(() => {
@@ -97,6 +96,7 @@ export class Blox extends EventEmitter {
                 document.execCommand("bold");
             }
             else {
+                console.warn("toggleBold");
                 !isBold
                     ? this.StyleManager.applyFormat("strong")
                     : this.StyleManager.unapplyFormat("strong");
@@ -150,6 +150,7 @@ export class Blox extends EventEmitter {
         return this.executeWithCallbacks(() => {
             if (document.queryCommandSupported("removeFormat")) {
                 document.execCommand("removeFormat");
+                this.StyleManager.unapplyFormat("mark"); // mark element can't be removed by execCommand
             }
             else {
                 this.StyleManager.clearFormat();
@@ -158,7 +159,21 @@ export class Blox extends EventEmitter {
     }
     applyStyle(tagName, style) {
         this.executeWithCallbacks(() => {
-            this.StyleManager.applyFormat(tagName, style);
+            if (document.queryCommandSupported("styleWithCSS")) {
+                document.execCommand("styleWithCSS", false, "true");
+                if (style.backgroundColor) {
+                    document.execCommand("backColor", false, style.backgroundColor);
+                }
+                if (style.color) {
+                    document.execCommand("foreColor", false, style.color);
+                }
+                if (style.fontFamily) {
+                    document.execCommand("fontName", false, style.fontFamily);
+                }
+            }
+            else {
+                this.StyleManager.applyFormat(tagName, style);
+            }
         });
     }
     toggleType(newType) {

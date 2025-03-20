@@ -5,6 +5,7 @@
 import { BloxManager } from "../BloxManager";
 import { Blox } from "../../classes/Blox";
 import { BLOCK_TYPES } from "../../blockTypes";
+import { createDOMManagerMock } from "./mocks/DOMManagerMock";
 
 const createMockBlockElement = (id: string, innerHTML: string) => {
   const element = document.createElement("div");
@@ -16,16 +17,16 @@ const createMockBlockElement = (id: string, innerHTML: string) => {
 describe("BloxManager", () => {
   let bloxManager: BloxManager;
   let mockOnChange: jest.Mock;
-  let mockDOMManager: any;
   let mockHistoryManager: any;
 
   // Mocks for dependencies
   const mockOnUpdate = jest.fn();
   const mockTypingManager = {} as any;
   const mockStyleManager = {
-    updateCurrentStyles: jest.fn()
+    updateCurrentStyles: jest.fn(),
   } as any;
   const mockPasteManager = {} as any;
+  const mockDOMManager = createDOMManagerMock();
 
   // Helper function to create mock Blox instances
   const createMockBlox = (id: string, content: string): Blox => {
@@ -44,12 +45,6 @@ describe("BloxManager", () => {
 
   beforeEach(() => {
     mockOnChange = jest.fn();
-    mockDOMManager = {
-      getBlockElement: jest.fn(),
-      blocksToHTML: jest.fn(),
-      focusBlock: jest.fn(),
-      getBlockElementById: jest.fn(),
-    };
     mockHistoryManager = {
       saveState: jest.fn(),
       undo: jest.fn(),
@@ -318,7 +313,7 @@ describe("BloxManager", () => {
         }),
       });
 
-      mockDOMManager.getBlockElementById.mockReturnValue({});
+      mockDOMManager.getBlockElementById.mockReturnValue(null);
 
       bloxManager.split("1");
 
@@ -336,7 +331,7 @@ describe("BloxManager", () => {
         }),
       });
 
-      mockDOMManager.getBlockElementById.mockReturnValue({});
+      mockDOMManager.getBlockElementById.mockReturnValue(null);
 
       bloxManager.split("1");
 
@@ -380,8 +375,6 @@ describe("BloxManager", () => {
       expect(bloxManager.getBlox()).toHaveLength(2);
       expect(bloxManager.getBlox()[0].content).toBe("aaabbbb");
       expect(bloxManager.getBlox()[1].content).toBe("<b>cc</b>cc");
-
-      expect(mockDOMManager.focusBlock).not.toHaveBeenCalled();
     });
 
     it("should do nothing if the block is the first block", () => {

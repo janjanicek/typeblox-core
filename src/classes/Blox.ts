@@ -1,4 +1,4 @@
-import { BlockType, EventCallback } from "../types";
+import { BlockType, EventCallback, JSONNode } from "../types";
 import { EventEmitter } from "./EventEmitter";
 import { EVENTS } from "../constants";
 import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../blockTypes";
@@ -93,12 +93,10 @@ export class Blox extends EventEmitter {
     );
   }
 
-  public updateContent = (removeSelection: boolean = false) => {
+  public updateContent = () => {
     const liveElement = this.getContentElement();
     const clonedElement = liveElement?.cloneNode(true) as HTMLElement;
     this.contentElement = liveElement;
-
-    if (removeSelection) this.TypingManager.removeSelection(clonedElement);
 
     if (this.type === BLOCK_TYPES.image) {
       // Special handling for images
@@ -148,13 +146,14 @@ export class Blox extends EventEmitter {
   }
 
   private beforeToggle(): void {
-    this.TypingManager.saveSelectionRange();
-    this.TypingManager.restoreSelectionRange();
+    this.TypingManager.saveSelection();
   }
 
   private afterToggle(): void {
-    this.TypingManager.selectAllTextInSelectedElement();
-    this.sendUpdateStyleEvent();
+    requestAnimationFrame(() => {
+      this.TypingManager.restoreSelection(true);
+      this.sendUpdateStyleEvent();
+    });
   }
 
   toggleBold(): boolean {
@@ -163,6 +162,7 @@ export class Blox extends EventEmitter {
       if (document.queryCommandSupported("bold")) {
         document.execCommand("bold");
       } else {
+        console.warn("toggleBold");
         !isBold
           ? this.StyleManager.applyFormat("strong")
           : this.StyleManager.unapplyFormat("strong");
@@ -217,6 +217,7 @@ export class Blox extends EventEmitter {
     return this.executeWithCallbacks(() => {
       if (document.queryCommandSupported("removeFormat")) {
         document.execCommand("removeFormat");
+        this.StyleManager.unapplyFormat("mark"); // mark element can't be removed by execCommand
       } else {
         this.StyleManager.clearFormat();
       }
@@ -225,7 +226,23 @@ export class Blox extends EventEmitter {
 
   applyStyle(tagName: string, style: Record<string, string>): void {
     this.executeWithCallbacks(() => {
-      this.StyleManager.applyFormat(tagName, style);
+      if (document.queryCommandSupported("styleWithCSS")) {
+        document.execCommand("styleWithCSS", false, "true");
+  
+        if (style.backgroundColor) {
+          document.execCommand("backColor", false, style.backgroundColor);
+        }
+  
+        if (style.color) {
+          document.execCommand("foreColor", false, style.color);
+        }
+  
+        if (style.fontFamily) {
+          document.execCommand("fontName", false, style.fontFamily);
+        }
+      } else {
+        this.StyleManager.applyFormat(tagName, style);
+      }
     });
   }
 
