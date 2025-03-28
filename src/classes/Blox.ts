@@ -93,6 +93,14 @@ export class Blox extends EventEmitter {
     );
   }
 
+  getVideoURL(): string {
+    return (
+      document
+        .querySelector(`[data-typeblox-id="${this.id}"] iframe`)
+        ?.getAttribute("src") ?? ""
+    );
+  }
+
   public updateContent = () => {
     const liveElement = this.getContentElement();
     const clonedElement = liveElement?.cloneNode(true) as HTMLElement;
@@ -103,6 +111,14 @@ export class Blox extends EventEmitter {
       const imageURL = this.getImageURL();
       const isSame = imageURL === this.content; // Compare the current content with the image URL
       this.content = isSame ? this.content : imageURL;
+      return !isSame; // Return whether the content has changed
+    }
+
+    if (this.type === BLOCK_TYPES.video) {
+      // Special handling for images
+      const videoURL = this.getVideoURL();
+      const isSame = videoURL === this.content; // Compare the current content with the image URL
+      this.content = isSame ? this.content : videoURL;
       return !isSame; // Return whether the content has changed
     }
 
@@ -120,9 +136,12 @@ export class Blox extends EventEmitter {
   public isContentEmpty = () => /^[\s\u00A0\u200B]*$/.test(this.content);
 
   public setContent = (contentString: string) => {
-    if (this.type === BLOCK_TYPES.image) {
+    if (this.type === BLOCK_TYPES.image || this.type === BLOCK_TYPES.video) {
       this.content = contentString; // Store the raw image URL
       if (this.contentElement instanceof HTMLImageElement) {
+        this.contentElement.src = this.content;
+      }
+      if (this.contentElement instanceof HTMLIFrameElement) {
         this.contentElement.src = this.content;
       }
     } else {
@@ -151,7 +170,7 @@ export class Blox extends EventEmitter {
 
   private afterToggle(): void {
     requestAnimationFrame(() => {
-      this.TypingManager.restoreSelection(true);
+      this.TypingManager.restoreSelection();
       this.sendUpdateStyleEvent();
     });
   }
@@ -337,7 +356,8 @@ export class Blox extends EventEmitter {
     return (
       isEmptyContent ||
       (isEmptyContent && type === BLOCK_TYPES.code) ||
-      type === BLOCK_TYPES.image
+      type === BLOCK_TYPES.image ||
+      type === BLOCK_TYPES.video
     );
   }
 

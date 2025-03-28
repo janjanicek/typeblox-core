@@ -38,6 +38,7 @@ export declare class Blox extends EventEmitter {
     constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, HistoryManager, PasteManager, DOMManager, style, classes, attributes, }: BloxProps);
     getContentElement(): HTMLElement | null;
     getImageURL(): string;
+    getVideoURL(): string;
     updateContent: () => boolean;
     getContent: () => string;
     isContentEmpty: () => boolean;

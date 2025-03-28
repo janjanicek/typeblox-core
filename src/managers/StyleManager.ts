@@ -48,143 +48,245 @@ export class StyleManager extends EventEmitter {
 
   private areDependenciesSet = () => this.TypingManager && this.DOMManager;
 
-  public applyFormat(tagName: string, style?: Record<string, string>) {
-    if (!this.areDependenciesSet()) return;
+  /**
+   * Applies formatting to the selected text.
+   * This method handles various scenarios including:
+   * - Applying formatting to a text selection
+   * - Handling nested formatting
+   * - Applying styles to existing formatted elements
+   * - Handling complex DOM structures
+   *
+   * @param tagName - The HTML tag to apply (e.g., 'strong', 'em', 'u')
+   * @param style - Optional styles to apply to the element
+   * @returns boolean - Whether the formatting was applied successfully
+   */
+  public applyFormat(tagName: string, style?: Record<string, string>): boolean {
+    if (!this.areDependenciesSet()) return false;
 
     const contentElement = this.DOMManager?.getBlockElement();
-    if (!contentElement) return;
+    if (!contentElement) return false;
 
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
+    if (!selection || selection.rangeCount === 0) return false;
 
     const range = selection.getRangeAt(0);
     const selectedText = range.toString();
 
-    if (!selectedText.trim()) return; // No meaningful selection
+    if (!selectedText.trim()) return false; // No meaningful selection
 
     const selectedElement = this.TypingManager?.getSelectedElement();
-    if (!selectedElement) return;
+    if (!selectedElement) return false;
 
-    const targetElement =
-      selectedElement.nodeType === Node.TEXT_NODE
-        ? selectedElement.parentElement
-        : (selectedElement as HTMLElement);
+    // Save selection state for later restoration
+    this.TypingManager?.saveSelection();
 
-    if (!targetElement) return;
+    try {
+      const targetElement =
+        selectedElement.nodeType === Node.TEXT_NODE
+          ? selectedElement.parentElement
+          : (selectedElement as HTMLElement);
 
-    let matchingParentTag = targetElement.closest(tagName);
-    let matchingParentStyle: HTMLElement | null = null;
+      if (!targetElement) return false;
 
-    // If style is provided, check if an element with the same style exists
-    if (style && Object.keys(style).length > 0) {
-      const leadingStyle = Object.keys(style)[0];
-      const styleKey = toCssStyle(leadingStyle);
-      matchingParentStyle = targetElement.closest<HTMLElement>(
-        `${tagName}[style*="${styleKey}"]`,
-      );
+      let matchingParentTag = targetElement.closest(tagName);
+      let matchingParentStyle: HTMLElement | null = null;
 
-      if (
-        matchingParentStyle &&
-        matchingParentStyle.textContent?.trim() ===
-          targetElement?.textContent?.trim()
-      ) {
-        Object.keys(style).forEach((key) => {
-          matchingParentStyle!.style[key as any] = style[key];
-        });
-        return;
-      }
-    } else if (matchingParentTag) {
-      return;
-    }
+      // If style is provided, check if an element with the same style exists
+      if (style && Object.keys(style).length > 0) {
+        const leadingStyle = Object.keys(style)[0];
+        const styleKey = toCssStyle(leadingStyle);
+        matchingParentStyle = targetElement.closest<HTMLElement>(
+          `${tagName}[style*="${styleKey}"]`,
+        );
 
-    // Handle partial text selection by splitting text nodes
-    if (selectedElement.nodeType === Node.TEXT_NODE) {
-      const textNode = selectedElement;
-      const textContent = textNode.textContent!;
-      const startOffset = range.startOffset;
-      const endOffset = range.endOffset;
+        // If we found a matching parent with the same style and it contains exactly our selection,
+        // just update its styles instead of creating a new element
+        if (
+          matchingParentStyle &&
+          matchingParentStyle.textContent?.trim() ===
+            targetElement?.textContent?.trim()
+        ) {
+          Object.keys(style).forEach((key) => {
+            matchingParentStyle!.style[key as any] = style[key];
+          });
 
-      const beforeText = textContent.slice(0, startOffset);
-      const selectedPart = textContent.slice(startOffset, endOffset);
-      const afterText = textContent.slice(endOffset);
-
-      const wrapper = document.createElement(tagName);
-      wrapper.textContent = selectedPart;
-
-      if (style) {
-        Object.keys(style).forEach((key) => {
-          wrapper.style[key as any] = style[key];
-        });
+          // Restore selection after applying style
+          this.TypingManager?.restoreSelection();
+          return true;
+        }
+      } else if (matchingParentTag) {
+        // If we already have this tag applied to the exact selection, don't apply it again
+        if (matchingParentTag.textContent?.trim() === selectedText.trim()) {
+          // Restore selection and return
+          this.TypingManager?.restoreSelection();
+          return false;
+        }
       }
 
-      const parentElement = textNode.parentElement!;
+      // Handle partial text selection by splitting text nodes
+      if (selectedElement.nodeType === Node.TEXT_NODE) {
+        const textNode = selectedElement;
+        const textContent = textNode.textContent!;
+        const startOffset = range.startOffset;
+        const endOffset = range.endOffset;
 
-      if (beforeText) {
-        const beforeNode = document.createTextNode(beforeText);
-        parentElement.insertBefore(beforeNode, textNode);
+        const beforeText = textContent.slice(0, startOffset);
+        const selectedPart = textContent.slice(startOffset, endOffset);
+        const afterText = textContent.slice(endOffset);
+
+        const wrapper = document.createElement(tagName);
+        wrapper.textContent = selectedPart;
+
+        if (style) {
+          Object.keys(style).forEach((key) => {
+            wrapper.style[key as any] = style[key];
+          });
+        }
+
+        const parentElement = textNode.parentElement!;
+
+        if (beforeText) {
+          const beforeNode = document.createTextNode(beforeText);
+          parentElement.insertBefore(beforeNode, textNode);
+        }
+
+        parentElement.insertBefore(wrapper, textNode);
+
+        if (afterText) {
+          const afterNode = document.createTextNode(afterText);
+          parentElement.insertBefore(afterNode, textNode);
+        }
+
+        textNode.remove();
+
+        // Try to merge adjacent identical elements
+        if (parentElement) {
+          this.TypingManager?.mergeConsecutiveStyledElements(parentElement);
+        }
+      } else {
+        // If not a text node, wrap the entire selection
+        try {
+          const wrapper = document.createElement(tagName);
+          if (style) {
+            Object.keys(style).forEach((key: any) => {
+              wrapper.style[key] = style[key];
+            });
+          }
+
+          // Try to use surroundContents, but it can fail if the selection spans multiple elements
+          try {
+            range.surroundContents(wrapper);
+          } catch (e) {
+            // Fallback for complex selections that span multiple elements
+            console.warn(
+              "surroundContents failed, using extractContents fallback",
+            );
+            const fragment = range.extractContents();
+            wrapper.appendChild(fragment);
+            range.insertNode(wrapper);
+          }
+
+          // Try to merge adjacent identical elements
+          if (wrapper.parentElement) {
+            this.TypingManager?.mergeConsecutiveStyledElements(
+              wrapper.parentElement,
+            );
+          }
+        } catch (error) {
+          console.error("Error applying format:", error);
+          // Restore selection even if there was an error
+          this.TypingManager?.restoreSelection();
+          return false;
+        }
       }
 
-      parentElement.insertBefore(wrapper, textNode);
-
-      if (afterText) {
-        const afterNode = document.createTextNode(afterText);
-        parentElement.insertBefore(afterNode, textNode);
-      }
-
-      textNode.remove();
-    } else {
-      // If not a text node, wrap the entire selection
-      const wrapper = document.createElement(tagName);
-      if (style) {
-        Object.keys(style).forEach((key: any) => {
-          wrapper.style[key] = style[key];
-        });
-      }
-
-      range.surroundContents(wrapper);
+      // Restore selection after applying style
+      this.TypingManager?.restoreSelection();
+      return true;
+    } catch (error) {
+      console.error("Error in applyFormat:", error);
+      // Try to restore selection even if there was an error
+      this.TypingManager?.restoreSelection();
+      return false;
     }
   }
 
-  public unapplyFormat(tagName: string, styleKey: string | null = null) {
-    if (!this.areDependenciesSet()) return;
+  /**
+   * Removes formatting from the selected text.
+   * This method handles various scenarios including:
+   * - Removing formatting from a text selection
+   * - Handling nested formatting
+   * - Removing styles from formatted elements
+   *
+   * @param tagName - The HTML tag to remove (e.g., 'strong', 'em', 'u')
+   * @param styleKey - Optional style property to remove
+   * @returns boolean - Whether the formatting was removed successfully
+   */
+  public unapplyFormat(
+    tagName: string,
+    styleKey: string | null = null,
+  ): boolean {
+    if (!this.areDependenciesSet()) return false;
 
     let selectedElement = this.TypingManager?.getSelectedElement();
-    if (!selectedElement) return;
+    if (!selectedElement) return false;
 
-    // Ensure selectedElement is an HTMLElement before calling .closest()
-    const targetElement =
-      selectedElement.nodeType === Node.TEXT_NODE
-        ? selectedElement.parentElement
-        : (selectedElement as HTMLElement);
+    // Save selection state for later restoration
+    this.TypingManager?.saveSelection();
 
-    if (!targetElement) return;
+    try {
+      // Ensure selectedElement is an HTMLElement before calling .closest()
+      const targetElement =
+        selectedElement.nodeType === Node.TEXT_NODE
+          ? selectedElement.parentElement
+          : (selectedElement as HTMLElement);
 
-    const matchingParent = targetElement.closest(tagName);
-    const isMatchingSelection =
-      targetElement.textContent?.trim() === matchingParent?.textContent?.trim();
-    const matchingChildren = targetElement.querySelectorAll(tagName);
-
-    // Remove nested tags first
-    if (matchingChildren.length > 0) {
-      Array.from(matchingChildren).forEach((element) => {
-        this.DOMManager?.removeElement(element);
-      });
-    }
-
-    // If the whole selection is wrapped in the tag, remove it
-    if (matchingParent && isMatchingSelection) {
-      this.DOMManager?.removeElement(matchingParent);
-    }
-
-    // Handle inline styles removal
-    if (styleKey) {
-      const closestStyledElement = targetElement.closest<HTMLElement>(tagName);
-      if (closestStyledElement && closestStyledElement.style[styleKey as any]) {
-        closestStyledElement.style.removeProperty(styleKey);
+      if (!targetElement) {
+        this.TypingManager?.restoreSelection();
+        return false;
       }
-    }
 
-    this.unapplyAliases(tagName);
+      const matchingParent = targetElement.closest(tagName);
+      const isMatchingSelection =
+        targetElement.textContent?.trim() ===
+        matchingParent?.textContent?.trim();
+      const matchingChildren = targetElement.querySelectorAll(tagName);
+
+      // Remove nested tags first
+      if (matchingChildren.length > 0) {
+        Array.from(matchingChildren).forEach((element) => {
+          this.DOMManager?.removeElement(element);
+        });
+      }
+
+      // If the whole selection is wrapped in the tag, remove it
+      if (matchingParent && isMatchingSelection) {
+        this.DOMManager?.removeElement(matchingParent);
+      }
+
+      // Handle inline styles removal
+      if (styleKey) {
+        const closestStyledElement =
+          targetElement.closest<HTMLElement>(tagName);
+        if (
+          closestStyledElement &&
+          closestStyledElement.style[styleKey as any]
+        ) {
+          closestStyledElement.style.removeProperty(styleKey);
+        }
+      }
+
+      this.unapplyAliases(tagName);
+
+      // Restore selection after removing formatting
+      this.TypingManager?.restoreSelection();
+      return true;
+    } catch (error) {
+      console.error("Error in unapplyFormat:", error);
+      // Try to restore selection even if there was an error
+      this.TypingManager?.restoreSelection();
+      return false;
+    }
   }
 
   unapplyAliases(tagName: string) {

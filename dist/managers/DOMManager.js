@@ -2,10 +2,11 @@ import { Blox } from "../classes/Blox";
 import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../blockTypes";
 import { getAllowedAttributes } from "../utils/attributes";
 export class DOMManager {
-    constructor(initialBloxManager, initialTypingManager, initialEditorManager) {
+    constructor(initialBloxManager, initialTypingManager, initialEditorManager, initialLinkManager) {
         this.BloxManager = null;
         this.TypingManager = null;
         this.EditorManager = null;
+        this.LinkManager = null;
         this.removeElement = (matchingParent) => {
             const parentElement = matchingParent.parentElement;
             if (!parentElement) {
@@ -114,7 +115,24 @@ export class DOMManager {
                             break;
                     }
                 }
-                return `<p data-tbx-block="${BLOCK_TYPES.image}" style="${styles}" ><img src="${block.content}" style="${block.styles}" class="${block.classes}" ${attributes}/></p>`;
+                return `<p data-tbx-block="${block.type}" style="${styles}" ><${BLOCKS_SETTINGS[block.type].tag} src="${block.content}" style="${block.styles}" class="${block.classes}" ${attributes}/></p>`;
+            }
+            else if (block.type === BLOCK_TYPES.video) {
+                let styles = "";
+                const alignment = block.getAttributes()["data-tbx-alignment"];
+                if (alignment) {
+                    switch (alignment) {
+                        case "center":
+                            styles = "text-align: center";
+                            break;
+                        case "right":
+                            styles = "float: right";
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                return `<p data-tbx-block="${block.type}" style="${styles}" ><iframe src="${block.content}" style="${block.styles}" class="${block.classes}" width="${block.getAttributes()["width"] || 560}" height="${block.getAttributes()["height"] || 315}" ${attributes}></iframe></p>`;
             }
             else if (block.type === BLOCK_TYPES.code) {
                 return `<pre data-tbx-block="${BLOCK_TYPES.code}"><code style="${block.styles}" class="${block.classes}" ${attributes}>${block.content}</code></pre>`;
@@ -230,27 +248,39 @@ export class DOMManager {
             const generateId = () => `${Date.now()}${idCounter++}`;
             const blocks = Array.from(doc.body.children)
                 .map((element) => {
-                var _a, _b, _c;
+                var _a, _b, _c, _d, _e, _f, _g;
                 let predefinedBlockType = element.getAttribute("data-tbx-block") || "";
                 const tagName = element.tagName.toLowerCase();
                 if (tagName === "img")
                     predefinedBlockType = BLOCK_TYPES.image;
+                if (tagName === "iframe" &&
+                    this.LinkManager &&
+                    this.LinkManager.isYouTubeIframeVideo(element)) {
+                    predefinedBlockType = BLOCK_TYPES.video;
+                }
                 const predefinedTag = (_a = BLOCKS_SETTINGS[predefinedBlockType]) === null || _a === void 0 ? void 0 : _a.tag;
                 const type = predefinedTag || tagName;
                 let finalElement = this.getFinalElement(element, predefinedTag) || element;
                 const blockSetting = Object.values(BLOCKS_SETTINGS).find((setting) => setting.tag === type);
+                console.log(predefinedBlockType, finalElement, predefinedBlockType === BLOCK_TYPES.video
+                    ? ((_b = element.getAttribute("src")) !== null && _b !== void 0 ? _b : "")
+                    : predefinedBlockType === BLOCK_TYPES.image
+                        ? ((_c = finalElement.getAttribute("src")) !== null && _c !== void 0 ? _c : "")
+                        : finalElement.innerHTML.trim());
                 return blockSetting
-                    ? (_b = this.BloxManager) === null || _b === void 0 ? void 0 : _b.createBlox({
+                    ? (_d = this.BloxManager) === null || _d === void 0 ? void 0 : _d.createBlox({
                         id: generateId(),
                         type: blockSetting.blockName,
-                        content: predefinedBlockType === BLOCK_TYPES.image
-                            ? finalElement.getAttribute("src") || ""
-                            : finalElement.innerHTML.trim(),
+                        content: predefinedBlockType === BLOCK_TYPES.video
+                            ? ((_e = finalElement.getAttribute("src")) !== null && _e !== void 0 ? _e : "")
+                            : predefinedBlockType === BLOCK_TYPES.image
+                                ? ((_f = finalElement.getAttribute("src")) !== null && _f !== void 0 ? _f : "")
+                                : finalElement.innerHTML.trim(),
                         style: finalElement.getAttribute("style"),
                         classes: finalElement.getAttribute("class"),
                         attributes: getAllowedAttributes(finalElement),
                     })
-                    : (_c = this.BloxManager) === null || _c === void 0 ? void 0 : _c.createBlox({
+                    : (_g = this.BloxManager) === null || _g === void 0 ? void 0 : _g.createBlox({
                         id: generateId(),
                         type: BLOCK_TYPES.text,
                         content: finalElement.innerHTML.trim(),
@@ -277,11 +307,15 @@ export class DOMManager {
         if (initialEditorManager) {
             this.EditorManager = initialEditorManager;
         }
+        if (initialLinkManager) {
+            this.LinkManager = initialLinkManager;
+        }
     }
-    setDependencies(BloxManager, TypingManager, EditorManager) {
+    setDependencies(BloxManager, TypingManager, EditorManager, LinkManager) {
         this.BloxManager = BloxManager;
         this.TypingManager = TypingManager;
         this.EditorManager = EditorManager;
+        this.LinkManager = LinkManager;
     }
     getBlockFromEvent(event) {
         var _a, _b;

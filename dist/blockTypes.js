@@ -2,6 +2,7 @@ export const BLOCK_TYPES = {
     text: "text",
     code: "code",
     image: "image",
+    video: "video",
     headline1: "headline1",
     headline2: "headline2",
     headline3: "headline3",
@@ -10,7 +11,7 @@ export const BLOCK_TYPES = {
     numberedList: "numberedList",
     blockquote: "blockquote",
 };
-export const blocksWithoutSelection = [BLOCK_TYPES.image];
+export const blocksWithoutSelection = [BLOCK_TYPES.image, BLOCK_TYPES.video];
 export function addBlockType(blockName, blockKey) {
     BLOCK_TYPES[blockName] = blockKey;
 }
@@ -21,6 +22,7 @@ export const AVAILABLE_BLOCKS = [
     "text",
     "code",
     "image",
+    "video",
     "headline1",
     "headline2",
     "headline3",
@@ -144,6 +146,22 @@ export const BLOCKS_SETTINGS = {
         icon: "Photo",
         description: "Upload an image or embed it via link.",
         toolbar: "replaceImage imageSettings | align",
+        availableTypes: ["html"],
+        defaults: {
+            classes: "",
+            attributes: "",
+            styles: "",
+        },
+    },
+    video: {
+        tag: "iframe",
+        visibleName: "YouTube Video",
+        blockName: BLOCK_TYPES.video,
+        placeholder: "",
+        contentPattern: (content) => `${content}`,
+        icon: "Video",
+        description: "Embed YouTube video via link.",
+        toolbar: "replaceVideo videoSettings | align",
         availableTypes: ["html"],
         defaults: {
             classes: "",

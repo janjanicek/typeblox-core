@@ -19,6 +19,13 @@ export class Blox extends EventEmitter {
                 this.content = isSame ? this.content : imageURL;
                 return !isSame; // Return whether the content has changed
             }
+            if (this.type === BLOCK_TYPES.video) {
+                // Special handling for images
+                const videoURL = this.getVideoURL();
+                const isSame = videoURL === this.content; // Compare the current content with the image URL
+                this.content = isSame ? this.content : videoURL;
+                return !isSame; // Return whether the content has changed
+            }
             // Default handling for other types
             const isSame = (clonedElement === null || clonedElement === void 0 ? void 0 : clonedElement.innerHTML) === this.content;
             this.content = isSame ? this.content : ((_a = clonedElement === null || clonedElement === void 0 ? void 0 : clonedElement.innerHTML) !== null && _a !== void 0 ? _a : "");
@@ -30,9 +37,12 @@ export class Blox extends EventEmitter {
         };
         this.isContentEmpty = () => /^[\s\u00A0\u200B]*$/.test(this.content);
         this.setContent = (contentString) => {
-            if (this.type === BLOCK_TYPES.image) {
+            if (this.type === BLOCK_TYPES.image || this.type === BLOCK_TYPES.video) {
                 this.content = contentString; // Store the raw image URL
                 if (this.contentElement instanceof HTMLImageElement) {
+                    this.contentElement.src = this.content;
+                }
+                if (this.contentElement instanceof HTMLIFrameElement) {
                     this.contentElement.src = this.content;
                 }
             }
@@ -74,6 +84,11 @@ export class Blox extends EventEmitter {
         return ((_b = (_a = document
             .querySelector(`[data-typeblox-id="${this.id}"] img`)) === null || _a === void 0 ? void 0 : _a.getAttribute("src")) !== null && _b !== void 0 ? _b : "");
     }
+    getVideoURL() {
+        var _a, _b;
+        return ((_b = (_a = document
+            .querySelector(`[data-typeblox-id="${this.id}"] iframe`)) === null || _a === void 0 ? void 0 : _a.getAttribute("src")) !== null && _b !== void 0 ? _b : "");
+    }
     executeWithCallbacks(callback) {
         this.beforeToggle();
         const result = callback();
@@ -85,12 +100,14 @@ export class Blox extends EventEmitter {
     }
     afterToggle() {
         requestAnimationFrame(() => {
-            this.TypingManager.restoreSelection(true);
+            // Remove the 'true' parameter to fully restore the selection without collapsing it
+            this.TypingManager.restoreSelection();
             this.sendUpdateStyleEvent();
         });
     }
     toggleBold() {
         return this.executeWithCallbacks(() => {
+            console.log("toggleBold");
             const { isBold } = this.StyleManager.getStyle();
             if (document.queryCommandSupported("bold")) {
                 document.execCommand("bold");
@@ -244,7 +261,8 @@ export class Blox extends EventEmitter {
         const isEmptyContent = !contentElement || isEmpty(contentElement) || this.content.trim() === "/";
         return (isEmptyContent ||
             (isEmptyContent && type === BLOCK_TYPES.code) ||
-            type === BLOCK_TYPES.image);
+            type === BLOCK_TYPES.image ||
+            type === BLOCK_TYPES.video);
     }
     pasteContent(e) {
         this.PasteManager.pasteContent(e);

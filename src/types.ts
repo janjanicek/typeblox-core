@@ -68,3 +68,17 @@ export interface BlockSettings {
 }
 
 export type EventCallback = (...args: any[]) => void;
+
+export interface LinkProps {
+  href: string;
+  target: string;
+}
+
+export interface ILinkManager {
+  findClosestAnchor(): HTMLAnchorElement | null;
+  createLink(props: LinkProps): void;
+  updateLink(props: LinkProps): void;
+  removeLink(): void;
+  getLinkProps(): LinkProps | null;
+  isYouTubeIframeVideo(element: HTMLElement): boolean;
+}

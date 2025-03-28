@@ -116,6 +116,7 @@ class Typeblox extends EventEmitter {
       this.BloxManager,
       this.TypingManager,
       this.EditorManager,
+      this.LinkManager,
     );
     this.TypingManager.setDependencies(this.DOMManager);
     this.HistoryManager.setDependencies(this.DOMManager);

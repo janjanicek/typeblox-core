@@ -10,6 +10,11 @@ export class TypingManager {
     startOffset: number;
     endOffset: number;
     isCursorOnly: boolean;
+    // Additional properties for more robust selection restoration
+    startPath?: number[];
+    endPath?: number[];
+    startNodeOffset?: number;
+    endNodeOffset?: number;
   } | null = null;
 
   setDependencies(DOMManager: DOMManager) {
@@ -250,8 +255,10 @@ export class TypingManager {
     if (commonAncestor instanceof HTMLElement) {
       blockContainer = commonAncestor.closest("[data-typeblox-editor]");
     } else if (commonAncestor.parentElement) {
-      blockContainer = commonAncestor.parentElement.closest("[data-typeblox-editor]");
-    }    
+      blockContainer = commonAncestor.parentElement.closest(
+        "[data-typeblox-editor]",
+      );
+    }
   
     // Build the chain of parent elements for the start container.
     const getParentChain = (node: Node): HTMLElement[] => {
@@ -264,10 +271,10 @@ export class TypingManager {
       }
       return chain;
     };
-  
+
     const startChain = getParentChain(range.startContainer);
     const endChain = getParentChain(range.endContainer);
-  
+
     // Find the lowest common ancestor (LCA) between start and end chains.
     let lca: HTMLElement | null = null;
     for (const el of startChain) {
@@ -277,105 +284,288 @@ export class TypingManager {
       }
     }
     if (!lca) return null;
-  
+
     // If the LCA is the block container, we may be too high.
     // In that case, we want to return the immediate child of the block that is on the start chain.
     if (blockContainer && lca === blockContainer) {
       // Find the element in the start chain whose parent is the block container.
-      const candidate = startChain.find((el) => el.parentElement === blockContainer);
+      const candidate = startChain.find(
+        (el) => el.parentElement === blockContainer,
+      );
       if (candidate) {
-        console.warn("getSelectedElement", candidate);
+
         return candidate;
       }
     }
 
-    console.warn("getSelectedElement", lca);
   
     return lca;
-  }  
-   
-public saveSelection() {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) {
-    console.warn("[TypingManager] No selection found.");
-    return;
   }
 
-  const range = selection.getRangeAt(0);
-  const blockElement = this.DOMManager?.getBlockElement();
-  if (!blockElement) {
-    console.warn("[TypingManager] No valid block element found.");
-    return;
-  }
-
-  // Clone the range and select the full content of the block.
-  const preSelectionRange = range.cloneRange();
-  preSelectionRange.selectNodeContents(blockElement);
-  preSelectionRange.setEnd(range.startContainer, range.startOffset);
-
-  // Compute global offsets: startOffset is the length of the text before the selection,
-  // and endOffset is startOffset plus the length of the selected text.
-  const startOffset = preSelectionRange.toString().length;
-  const endOffset = startOffset + range.toString().length;
-
-  this.lastSelectionData = {
-    blockElementId: blockElement.dataset.typebloxId || undefined,
-    startOffset,
-    endOffset,
-    isCursorOnly: range.collapsed,
-  };
-}
-
-public restoreSelection(justCollapsed = false) {
-  if (!this.lastSelectionData) return;
-
-  const { blockElementId, startOffset, endOffset, isCursorOnly } = this.lastSelectionData;
-  if (!blockElementId) return;
-
-  const blockElement = this.DOMManager?.getBlockElementById(blockElementId);
-  if (!blockElement) return;
-
-  const range = document.createRange();
-  let currentOffset = 0;
-  let startNode: Text | null = null;
-  let endNode: Text | null = null;
-  let startTextOffset = 0;
-  let endTextOffset = 0;
-
-  // Walk through all text nodes in the block to find the ones containing the saved offsets.
-  const walker = document.createTreeWalker(blockElement, NodeFilter.SHOW_TEXT, null);
-  while (walker.nextNode()) {
-    const node = walker.currentNode as Text;
-    const nodeLength = node.length;
-
-    if (!startNode && currentOffset + nodeLength >= startOffset) {
-      startNode = node;
-      startTextOffset = startOffset - currentOffset;
+  /**
+   * Saves the current selection state.
+   * This method captures the current selection and stores information about it
+   * for later restoration, including the block element ID, character offsets,
+   * and whether it's a cursor-only selection.
+   *
+   * It also stores DOM path information to handle cases where the DOM structure
+   * changes between saving and restoring the selection.
+   */
+  public saveSelection() {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      console.warn("[TypingManager] No selection found.");
+      return;
     }
 
-    if (!endNode && currentOffset + nodeLength >= endOffset) {
-      endNode = node;
-      endTextOffset = endOffset - currentOffset;
-      break;
+    const range = selection.getRangeAt(0);
+    const blockElement = this.DOMManager?.getBlockElement();
+    if (!blockElement) {
+      console.warn("[TypingManager] No valid block element found.");
+      return;
     }
 
-    currentOffset += nodeLength;
+    // Clone the range and select the full content of the block.
+    const preSelectionRange = range.cloneRange();
+    preSelectionRange.selectNodeContents(blockElement);
+    preSelectionRange.setEnd(range.startContainer, range.startOffset);
+
+    // Compute global offsets: startOffset is the length of the text before the selection,
+    // and endOffset is startOffset plus the length of the selected text.
+    const startOffset = preSelectionRange.toString().length;
+    const endOffset = startOffset + range.toString().length;
+
+    // Get DOM paths for more robust selection restoration
+    const startPath = this.getNodePath(range.startContainer, blockElement);
+    const endPath = range.collapsed
+      ? startPath
+      : this.getNodePath(range.endContainer, blockElement);
+
+    this.lastSelectionData = {
+      blockElementId: blockElement.dataset.typebloxId || undefined,
+      startOffset,
+      endOffset,
+      isCursorOnly: range.collapsed,
+      startPath,
+      endPath,
+      startNodeOffset: range.startOffset,
+      endNodeOffset: range.endOffset,
+    };
   }
 
-  if (!startNode) return;
+  /**
+   * Restores a previously saved selection.
+   * This method attempts to restore the selection using multiple strategies:
+   * 1. First tries to use DOM paths (most accurate when DOM structure is preserved)
+   * 2. Falls back to character offset-based approach if DOM paths fail
+   * 3. Has additional fallbacks for edge cases
+   *
+   * @param justCollapsed - If true, creates the range but doesn't apply it to the selection
+   * @returns boolean - Whether the selection was successfully restored
+   */
+  public restoreSelection(justCollapsed = false): boolean {
+    if (!this.lastSelectionData) return false;
 
-  range.setStart(startNode, startTextOffset);
-  if (isCursorOnly || !endNode) {
-    range.collapse(true);
-  } else {
-    range.setEnd(endNode, endTextOffset);
+    const {
+      blockElementId,
+      startOffset,
+      endOffset,
+      isCursorOnly,
+      startPath,
+      endPath,
+      startNodeOffset,
+      endNodeOffset,
+    } = this.lastSelectionData;
+
+    if (!blockElementId) return false;
+
+    const blockElement = this.DOMManager?.getBlockElementById(blockElementId);
+    if (!blockElement) return false;
+
+    const range = document.createRange();
+
+    // Try to restore using DOM paths first (more accurate if DOM structure is preserved)
+    if (
+      startPath &&
+      endPath &&
+      this.tryRestoreUsingPaths(
+        range,
+        blockElement,
+        startPath,
+        endPath,
+        startNodeOffset || 0,
+        endNodeOffset || 0,
+        isCursorOnly,
+      )
+    ) {
+      if (!isCursorOnly && justCollapsed) return true;
+
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      return true;
+    }
+
+    // Fall back to character offset approach
+    let currentOffset = 0;
+    let startNode: Text | null = null;
+    let endNode: Text | null = null;
+    let startTextOffset = 0;
+    let endTextOffset = 0;
+
+    // Walk through all text nodes in the block to find the ones containing the saved offsets.
+    const walker = document.createTreeWalker(
+      blockElement,
+      NodeFilter.SHOW_TEXT,
+      null,
+    );
+
+    try {
+      while (walker.nextNode()) {
+        const node = walker.currentNode as Text;
+        const nodeLength = node.length;
+
+        if (!startNode && currentOffset + nodeLength >= startOffset) {
+          startNode = node;
+          startTextOffset = startOffset - currentOffset;
+        }
+
+        if (!endNode && currentOffset + nodeLength >= endOffset) {
+          endNode = node;
+          endTextOffset = endOffset - currentOffset;
+          break;
+        }
+
+        currentOffset += nodeLength;
+      }
+
+      // Handle edge case: no text nodes found or offsets beyond available text
+      if (!startNode) {
+        // Try to get the first or last meaningful node as fallback
+        startNode = this.getFirstMeaningfulNode(blockElement) as Text;
+        if (!startNode && blockElement.firstChild) {
+          // Last resort: use the first child and position at start
+          range.setStart(blockElement.firstChild, 0);
+          range.collapse(true);
+        } else if (startNode) {
+          range.setStart(startNode, 0);
+          range.collapse(true);
+        } else {
+          // If all else fails, just select the block element
+          range.selectNodeContents(blockElement);
+          range.collapse(true);
+        }
+      } else {
+        // Normal case: we found our nodes
+        range.setStart(startNode, startTextOffset);
+        if (isCursorOnly || !endNode) {
+          range.collapse(true);
+        } else {
+          range.setEnd(
+            endNode || startNode,
+            endNode ? endTextOffset : startTextOffset,
+          );
+        }
+      }
+
+      if (!isCursorOnly && justCollapsed) return true;
+
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      return true;
+    } catch (error) {
+      console.error("[TypingManager] Error restoring selection:", error);
+      // Last resort fallback: just focus the block
+      try {
+        blockElement.focus();
+        return false;
+      } catch (e) {
+        return false;
+      }
+    }
   }
 
-  if(!isCursorOnly && justCollapsed) return;
+  /**
+   * Gets the DOM path from a node to an ancestor.
+   * This creates an array of indices that can be used to navigate from the ancestor to the node.
+   *
+   * @param node - The node to find the path for
+   * @param ancestor - The ancestor to stop at
+   * @returns number[] - Array of child indices from ancestor to node
+   */
+  private getNodePath(node: Node, ancestor: Node): number[] {
+    const path: number[] = [];
+    let current: Node | null = node;
 
-  const selection = window.getSelection();
-  selection?.removeAllRanges();
-  selection?.addRange(range);
-}
+    // Walk up the DOM tree until we reach the ancestor or the document
+    while (current && current !== ancestor && current.parentNode) {
+      const parent: Node = current.parentNode;
+      // Find the index of the current node in its parent's children
+      let index = 0;
+      for (let i = 0; i < parent.childNodes.length; i++) {
+        if (parent.childNodes[i] === current) {
+          index = i;
+          break;
+        }
+      }
+      path.unshift(index); // Add to the beginning of the array
+      current = parent;
+    }
 
+    return path;
+  }
+
+  /**
+   * Attempts to restore a selection using DOM paths.
+   *
+   * @param range - The range to set
+   * @param root - The root element to start from
+   * @param startPath - Path to the start node
+   * @param endPath - Path to the end node
+   * @param startOffset - Offset within the start node
+   * @param endOffset - Offset within the end node
+   * @param isCursorOnly - Whether this is a cursor-only selection
+   * @returns boolean - Whether the restoration was successful
+   */
+  private tryRestoreUsingPaths(
+    range: Range,
+    root: Node,
+    startPath: number[],
+    endPath: number[],
+    startOffset: number,
+    endOffset: number,
+    isCursorOnly: boolean,
+  ): boolean {
+    try {
+      // Follow the path to find the start node
+      let startNode: Node = root;
+      for (const index of startPath) {
+        if (!startNode.childNodes[index]) return false;
+        startNode = startNode.childNodes[index];
+      }
+
+      // Set the start of the range
+      range.setStart(startNode, startOffset);
+
+      if (isCursorOnly) {
+        range.collapse(true);
+      } else {
+        // Follow the path to find the end node
+        let endNode: Node = root;
+        for (const index of endPath) {
+          if (!endNode.childNodes[index]) return false;
+          endNode = endNode.childNodes[index];
+        }
+
+        // Set the end of the range
+        range.setEnd(endNode, endOffset);
+      }
+
+      return true;
+    } catch (error) {
+      console.warn("[TypingManager] Failed to restore using paths:", error);
+      return false;
+    }
+  }
 }

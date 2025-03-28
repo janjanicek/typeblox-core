@@ -4,6 +4,20 @@ interface LinkProps {
 }
 
 export class LinkManager {
+  /**
+   * Checks if an element is a YouTube iframe video
+   * @param element The HTML element to check
+   * @returns boolean indicating if the element is a YouTube iframe
+   */
+  public isYouTubeIframeVideo(element: HTMLElement): boolean {
+    if (element.tagName.toLowerCase() !== "iframe") {
+      console.warn(`${element.tagName} is not iframe`);
+      return false;
+    }
+
+    const src = (element as HTMLIFrameElement).src;
+    return /youtube\.com\/embed\/|youtu\.be\//.test(src);
+  }
   public findClosestAnchor(): HTMLAnchorElement | null {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return null;

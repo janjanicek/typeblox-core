@@ -6,16 +6,19 @@ import { getAllowedAttributes } from "../utils/attributes";
 import { TypingManager } from "./TypingManager";
 import { BlockType, JSONNode } from "../types";
 import { EditorManager } from "./EditorManager";
+import { LinkManager } from "./LinkManager";
 
 export class DOMManager {
   private BloxManager: BloxManager | null = null;
   private TypingManager: TypingManager | null = null;
   private EditorManager: EditorManager | null = null;
+  private LinkManager: LinkManager | null = null;
 
   constructor(
     initialBloxManager?: BloxManager,
     initialTypingManager?: TypingManager,
     initialEditorManager?: EditorManager,
+    initialLinkManager?: LinkManager,
   ) {
     if (initialBloxManager) {
       this.BloxManager = initialBloxManager;
@@ -26,16 +29,21 @@ export class DOMManager {
     if (initialEditorManager) {
       this.EditorManager = initialEditorManager;
     }
+    if (initialLinkManager) {
+      this.LinkManager = initialLinkManager;
+    }
   }
 
   setDependencies(
     BloxManager: BloxManager,
     TypingManager: TypingManager,
     EditorManager: EditorManager,
+    LinkManager: LinkManager,
   ) {
     this.BloxManager = BloxManager;
     this.TypingManager = TypingManager;
     this.EditorManager = EditorManager;
+    this.LinkManager = LinkManager;
   }
 
   public removeElement = (matchingParent: Element): void => {
@@ -163,7 +171,25 @@ export class DOMManager {
             }
           }
 
-          return `<p data-tbx-block="${BLOCK_TYPES.image}" style="${styles}" ><img src="${block.content}" style="${block.styles}" class="${block.classes}" ${attributes}/></p>`;
+          return `<p data-tbx-block="${block.type}" style="${styles}" ><${BLOCKS_SETTINGS[block.type].tag} src="${block.content}" style="${block.styles}" class="${block.classes}" ${attributes}/></p>`;
+        } else if (block.type === BLOCK_TYPES.video) {
+          let styles = "";
+          const alignment = block.getAttributes()["data-tbx-alignment"];
+
+          if (alignment) {
+            switch (alignment) {
+              case "center":
+                styles = "text-align: center";
+                break;
+              case "right":
+                styles = "float: right";
+                break;
+              default:
+                break;
+            }
+          }
+
+          return `<p data-tbx-block="${block.type}" style="${styles}" ><iframe src="${block.content}" style="${block.styles}" class="${block.classes}" width="${block.getAttributes()["width"] || 560}" height="${block.getAttributes()["height"] || 315}" ${attributes}></iframe></p>`;
         } else if (block.type === BLOCK_TYPES.code) {
           return `<pre data-tbx-block="${BLOCK_TYPES.code}"><code style="${block.styles}" class="${block.classes}" ${attributes}>${block.content}</code></pre>`;
         } else {
@@ -324,6 +350,13 @@ export class DOMManager {
         let predefinedBlockType = element.getAttribute("data-tbx-block") || "";
         const tagName = element.tagName.toLowerCase();
         if (tagName === "img") predefinedBlockType = BLOCK_TYPES.image;
+        if (
+          tagName === "iframe" &&
+          this.LinkManager &&
+          this.LinkManager.isYouTubeIframeVideo(element as HTMLElement)
+        ) {
+          predefinedBlockType = BLOCK_TYPES.video;
+        }
 
         const predefinedTag =
           BLOCKS_SETTINGS[predefinedBlockType as BlockType]?.tag;
@@ -344,9 +377,11 @@ export class DOMManager {
               id: generateId(),
               type: blockSetting.blockName,
               content:
-                predefinedBlockType === BLOCK_TYPES.image
-                  ? finalElement.getAttribute("src") || ""
-                  : finalElement.innerHTML.trim(),
+                predefinedBlockType === BLOCK_TYPES.video
+                  ? (finalElement.getAttribute("src") ?? "")
+                  : predefinedBlockType === BLOCK_TYPES.image
+                    ? (finalElement.getAttribute("src") ?? "")
+                    : finalElement.innerHTML.trim(),
               style: finalElement.getAttribute("style"),
               classes: finalElement.getAttribute("class"),
               attributes: getAllowedAttributes(finalElement as HTMLElement),

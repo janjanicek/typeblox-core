@@ -2,12 +2,14 @@ import { Blox } from "../classes/Blox";
 import type { BloxManager } from "./BloxManager";
 import { TypingManager } from "./TypingManager";
 import { EditorManager } from "./EditorManager";
+import { LinkManager } from "./LinkManager";
 export declare class DOMManager {
     private BloxManager;
     private TypingManager;
     private EditorManager;
-    constructor(initialBloxManager?: BloxManager, initialTypingManager?: TypingManager, initialEditorManager?: EditorManager);
-    setDependencies(BloxManager: BloxManager, TypingManager: TypingManager, EditorManager: EditorManager): void;
+    private LinkManager;
+    constructor(initialBloxManager?: BloxManager, initialTypingManager?: TypingManager, initialEditorManager?: EditorManager, initialLinkManager?: LinkManager);
+    setDependencies(BloxManager: BloxManager, TypingManager: TypingManager, EditorManager: EditorManager, LinkManager: LinkManager): void;
     removeElement: (matchingParent: Element) => void;
     sanitizeHTML: (html: string) => string;
     private isEmptyContent;

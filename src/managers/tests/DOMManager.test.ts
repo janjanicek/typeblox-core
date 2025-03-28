@@ -5,18 +5,35 @@ import { createRangeMock } from "./mocks/RangeMock";
 import { createSelectionMock } from "./mocks/SelectionMock";
 import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../../blockTypes";
 import { createDOMManagerMock } from "./mocks/DOMManagerMock";
+import { LinkManager } from "../LinkManager";
+import { TypingManager } from "../TypingManager";
+import { EditorManager } from "../EditorManager";
 
 jest.mock("../../managers/BloxManager");
 
 describe("DOMManager", () => {
   let domManager: DOMManager;
   let mockBloxManager: jest.Mocked<BloxManager>;
+  let mockTypingManager: jest.Mocked<TypingManager>;
+  let mockEditorManger: jest.Mocked<EditorManager>;
 
   beforeEach(() => {
     mockBloxManager = {
       createBlox: jest.fn(),
     } as unknown as jest.Mocked<BloxManager>;
-    domManager = new DOMManager(mockBloxManager);
+    mockTypingManager = {
+      getLastMeaningfulNode: jest.fn(),
+      getFirstMeaningfulNode: jest.fn(),
+    } as unknown as jest.Mocked<TypingManager>;
+    mockEditorManger = {
+      editorContainer: "",
+    } as unknown as jest.Mocked<EditorManager>;
+    domManager = new DOMManager(
+      mockBloxManager,
+      mockTypingManager,
+      mockEditorManger,
+      new LinkManager(),
+    );
   });
 
   afterEach(() => {
@@ -82,6 +99,31 @@ describe("DOMManager", () => {
 
       expect(result).toBe(
         '<p style="color: red; " class="example-class " >Hello</p>',
+      );
+    });
+
+    it("should convert video block to HTML", () => {
+      const blocks: Blox[] = [
+        new Blox({
+          id: "1",
+          content:
+            "https://www.youtube.com/embed/koqBd2H6UqU?si=p9BZVH_k6pS-8i_a",
+          type: BLOCK_TYPES.video,
+          onUpdate: jest.fn(),
+          TypingManager: jest.fn() as any,
+          StyleManager: jest.fn() as any,
+          PasteManager: jest.fn() as any,
+          DOMManager: createDOMManagerMock(),
+          HistoryManager: jest.fn() as any,
+          style: "color: red;",
+          classes: "example-class",
+        }),
+      ];
+
+      const result = domManager.blocksToHTML(blocks);
+
+      expect(result).toBe(
+        '<p data-tbx-block="video" style="" ><iframe src="https://www.youtube.com/embed/koqBd2H6UqU?si=p9BZVH_k6pS-8i_a" style="color: red; " class="example-class " width="560" height="315" ></iframe></p>',
       );
     });
 
@@ -189,6 +231,38 @@ describe("DOMManager", () => {
         style: "width: 300px",
         classes: null,
         attributes: 'title="abcd"',
+      });
+    });
+
+    it("should parse video into a block", () => {
+      const htmlString =
+        '<p class="abcd">Hello</p><img style="width: 300px" src="image.png" title="abcd" /><iframe width="560" height="315" src="https://www.youtube.com/embed/koqBd2H6UqU?si=p9BZVH_k6pS-8i_a" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe><p data-tbx-block="video" style="" ><iframe src="https://www.youtube.com/embed/koqBd2H6UqU?si=p9BZVH_k6pS-8i_a" style="color: red;" class="example-class" ></iframe></p>';
+
+      // Call the method
+      const blocks = domManager.parseHTMLToBlocks(htmlString);
+
+      // Verify createBlox was called four times (twice per element)
+      expect(mockBloxManager.createBlox).toHaveBeenCalledTimes(4);
+
+      // Verify the fourth call (specific block for <img>)
+      expect(mockBloxManager.createBlox).toHaveBeenNthCalledWith(3, {
+        id: expect.any(String), // Generated ID
+        type: BLOCKS_SETTINGS.video.blockName,
+        content:
+          "https://www.youtube.com/embed/koqBd2H6UqU?si=p9BZVH_k6pS-8i_a",
+        style: null,
+        classes: null,
+        attributes: 'width="560"; height="315"; title="YouTube video player"',
+      });
+
+      expect(mockBloxManager.createBlox).toHaveBeenNthCalledWith(4, {
+        id: expect.any(String), // Generated ID
+        type: BLOCKS_SETTINGS.video.blockName,
+        content:
+          "https://www.youtube.com/embed/koqBd2H6UqU?si=p9BZVH_k6pS-8i_a",
+        style: "color: red;",
+        classes: "example-class",
+        attributes: "",
       });
     });
 

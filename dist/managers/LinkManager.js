@@ -1,4 +1,17 @@
 export class LinkManager {
+    /**
+     * Checks if an element is a YouTube iframe video
+     * @param element The HTML element to check
+     * @returns boolean indicating if the element is a YouTube iframe
+     */
+    isYouTubeIframeVideo(element) {
+        if (element.tagName.toLowerCase() !== "iframe") {
+            console.warn(`${element.tagName} is not iframe`);
+            return false;
+        }
+        const src = element.src;
+        return /youtube\.com\/embed\/|youtu\.be\//.test(src);
+    }
     findClosestAnchor() {
         var _a;
         const selection = window.getSelection();

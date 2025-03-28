@@ -38,6 +38,9 @@ describe("StyleManager", () => {
       getCursorElement: jest.fn(),
       splitContentBySelected: jest.fn(),
       selectAllTextInSelectedElement: jest.fn(),
+      saveSelection: jest.fn(),
+      restoreSelection: jest.fn(),
+      mergeConsecutiveStyledElements: jest.fn(),
     } as unknown as jest.Mocked<TypingManager>;
 
     // Mock DOMManager

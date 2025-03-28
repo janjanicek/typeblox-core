@@ -139,7 +139,8 @@ export class ShortcutsManager {
                             }
                             return;
                         }
-                        case BLOCK_TYPES.image: {
+                        case BLOCK_TYPES.image:
+                        case BLOCK_TYPES.video: {
                             // Add block when click enter on the selected image.
                             (_4 = this.BloxManager) === null || _4 === void 0 ? void 0 : _4.addBlockAfter(currentBlock.id, DEFAULT_BLOCK_TYPE);
                             return;
