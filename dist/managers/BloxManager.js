@@ -205,6 +205,13 @@ export class BloxManager extends EventEmitter {
         // Remove the block from the array
         this.blocks.splice(index, 1);
         (_a = this.HistoryManager) === null || _a === void 0 ? void 0 : _a.saveState();
+        if (this.blocks.length === 0) {
+            // If removing the last block, add a new empty one.
+            const newBlock = this.createBlox({});
+            if (newBlock) {
+                this.setBlox([newBlock]);
+            }
+        }
         // Emit the blocksChanged event
         this.sendUpdateEvent();
         return true;

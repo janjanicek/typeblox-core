@@ -145,6 +145,10 @@ class Typeblox extends EventEmitter {
       }
     });
 
+    this.TypingManager.on(EVENTS.selectionChange, () => {
+      this.handleSelectionChange();
+    });
+
     registerListeners(this.detectSelection);
   }
 
@@ -286,7 +290,7 @@ class Typeblox extends EventEmitter {
   }
 
   private handleSelectionChange(): void {
-    this.emit(EVENTS.selectionChange, this.style().getStyle());
+    this.emit(EVENTS.selectionChange, this.blox().getCurrentBlock());
   }
 
   public isStyle(style: string): boolean {

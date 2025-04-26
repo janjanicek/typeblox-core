@@ -248,7 +248,7 @@ export class DOMManager {
             const generateId = () => `${Date.now()}${idCounter++}`;
             const blocks = Array.from(doc.body.children)
                 .map((element) => {
-                var _a, _b, _c, _d, _e, _f, _g;
+                var _a, _b, _c, _d, _e;
                 let predefinedBlockType = element.getAttribute("data-tbx-block") || "";
                 const tagName = element.tagName.toLowerCase();
                 if (tagName === "img")
@@ -262,25 +262,20 @@ export class DOMManager {
                 const type = predefinedTag || tagName;
                 let finalElement = this.getFinalElement(element, predefinedTag) || element;
                 const blockSetting = Object.values(BLOCKS_SETTINGS).find((setting) => setting.tag === type);
-                console.log(predefinedBlockType, finalElement, predefinedBlockType === BLOCK_TYPES.video
-                    ? ((_b = element.getAttribute("src")) !== null && _b !== void 0 ? _b : "")
-                    : predefinedBlockType === BLOCK_TYPES.image
-                        ? ((_c = finalElement.getAttribute("src")) !== null && _c !== void 0 ? _c : "")
-                        : finalElement.innerHTML.trim());
                 return blockSetting
-                    ? (_d = this.BloxManager) === null || _d === void 0 ? void 0 : _d.createBlox({
+                    ? (_b = this.BloxManager) === null || _b === void 0 ? void 0 : _b.createBlox({
                         id: generateId(),
                         type: blockSetting.blockName,
                         content: predefinedBlockType === BLOCK_TYPES.video
-                            ? ((_e = finalElement.getAttribute("src")) !== null && _e !== void 0 ? _e : "")
+                            ? ((_c = finalElement.getAttribute("src")) !== null && _c !== void 0 ? _c : "")
                             : predefinedBlockType === BLOCK_TYPES.image
-                                ? ((_f = finalElement.getAttribute("src")) !== null && _f !== void 0 ? _f : "")
+                                ? ((_d = finalElement.getAttribute("src")) !== null && _d !== void 0 ? _d : "")
                                 : finalElement.innerHTML.trim(),
                         style: finalElement.getAttribute("style"),
                         classes: finalElement.getAttribute("class"),
                         attributes: getAllowedAttributes(finalElement),
                     })
-                    : (_g = this.BloxManager) === null || _g === void 0 ? void 0 : _g.createBlox({
+                    : (_e = this.BloxManager) === null || _e === void 0 ? void 0 : _e.createBlox({
                         id: generateId(),
                         type: BLOCK_TYPES.text,
                         content: finalElement.innerHTML.trim(),

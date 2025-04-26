@@ -181,12 +181,11 @@ export class Blox extends EventEmitter {
       if (document.queryCommandSupported("bold")) {
         document.execCommand("bold");
       } else {
-        console.warn("toggleBold");
         !isBold
           ? this.StyleManager.applyFormat("strong")
           : this.StyleManager.unapplyFormat("strong");
       }
-      return !isBold;
+      return this.StyleManager.getStyle().isBold;
     });
   }
 
@@ -200,7 +199,7 @@ export class Blox extends EventEmitter {
           ? this.StyleManager.applyFormat("i")
           : this.StyleManager.unapplyFormat("i");
       }
-      return !isItalic;
+      return this.StyleManager.getStyle().isItalic;
     });
   }
 
@@ -214,7 +213,7 @@ export class Blox extends EventEmitter {
           ? this.StyleManager.applyFormat("s")
           : this.StyleManager.unapplyFormat("s");
       }
-      return !isStrikeout;
+      return this.StyleManager.getStyle().isStrikeout;
     });
   }
 
@@ -228,7 +227,7 @@ export class Blox extends EventEmitter {
           ? this.StyleManager.applyFormat("u")
           : this.StyleManager.unapplyFormat("u");
       }
-      return !isUnderline;
+      return this.StyleManager.getStyle().isUnderline;
     });
   }
 
@@ -247,15 +246,15 @@ export class Blox extends EventEmitter {
     this.executeWithCallbacks(() => {
       if (document.queryCommandSupported("styleWithCSS")) {
         document.execCommand("styleWithCSS", false, "true");
-  
+
         if (style.backgroundColor) {
           document.execCommand("backColor", false, style.backgroundColor);
         }
-  
+
         if (style.color) {
           document.execCommand("foreColor", false, style.color);
         }
-  
+
         if (style.fontFamily) {
           document.execCommand("fontName", false, style.fontFamily);
         }

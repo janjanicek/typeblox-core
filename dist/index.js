@@ -94,6 +94,9 @@ class Typeblox extends EventEmitter {
                 this.updateEditorContent(newState, isUndo);
             }
         });
+        this.TypingManager.on(EVENTS.selectionChange, () => {
+            this.handleSelectionChange();
+        });
         registerListeners(this.detectSelection);
     }
     // Public methods
@@ -214,7 +217,7 @@ class Typeblox extends EventEmitter {
         }
     }
     handleSelectionChange() {
-        this.emit(EVENTS.selectionChange, this.style().getStyle());
+        this.emit(EVENTS.selectionChange, this.blox().getCurrentBlock());
     }
     isStyle(style) {
         switch (style) {

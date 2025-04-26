@@ -100,25 +100,22 @@ export class Blox extends EventEmitter {
     }
     afterToggle() {
         requestAnimationFrame(() => {
-            // Remove the 'true' parameter to fully restore the selection without collapsing it
             this.TypingManager.restoreSelection();
             this.sendUpdateStyleEvent();
         });
     }
     toggleBold() {
         return this.executeWithCallbacks(() => {
-            console.log("toggleBold");
             const { isBold } = this.StyleManager.getStyle();
             if (document.queryCommandSupported("bold")) {
                 document.execCommand("bold");
             }
             else {
-                console.warn("toggleBold");
                 !isBold
                     ? this.StyleManager.applyFormat("strong")
                     : this.StyleManager.unapplyFormat("strong");
             }
-            return !isBold;
+            return this.StyleManager.getStyle().isBold;
         });
     }
     toggleItalic() {
@@ -132,7 +129,7 @@ export class Blox extends EventEmitter {
                     ? this.StyleManager.applyFormat("i")
                     : this.StyleManager.unapplyFormat("i");
             }
-            return !isItalic;
+            return this.StyleManager.getStyle().isItalic;
         });
     }
     toggleStrike() {
@@ -146,7 +143,7 @@ export class Blox extends EventEmitter {
                     ? this.StyleManager.applyFormat("s")
                     : this.StyleManager.unapplyFormat("s");
             }
-            return !isStrikeout;
+            return this.StyleManager.getStyle().isStrikeout;
         });
     }
     toggleUnderline() {
@@ -160,7 +157,7 @@ export class Blox extends EventEmitter {
                     ? this.StyleManager.applyFormat("u")
                     : this.StyleManager.unapplyFormat("u");
             }
-            return !isUnderline;
+            return this.StyleManager.getStyle().isUnderline;
         });
     }
     clearStyle() {

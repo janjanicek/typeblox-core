@@ -338,6 +338,7 @@ export class StyleManager extends EventEmitter {
 
       const detectStylesOnNode = (node: HTMLElement) => {
         const computedStyle = window.getComputedStyle(node);
+        const hasDec = (sel: string) => !!node.querySelector(sel);
         const blockType = node.closest("[data-typeblox-id]")?.nodeName;
 
         if (blockType) {
@@ -361,33 +362,37 @@ export class StyleManager extends EventEmitter {
         }
 
         if (
-          !detectedStyles.isBold &&
-          (computedStyle.fontWeight === "bold" ||
-            parseInt(computedStyle.fontWeight) >= 700 ||
-            node.matches("b,strong"))
+          (!detectedStyles.isBold &&
+            (computedStyle.fontWeight === "bold" ||
+              parseInt(computedStyle.fontWeight) >= 700 ||
+              node.matches("b,strong"))) ||
+          hasDec("b,strong")
         ) {
           detectedStyles.isBold = true;
         }
 
         if (
-          !detectedStyles.isItalic &&
-          (computedStyle.fontStyle === "italic" || node.matches("i,em"))
+          (!detectedStyles.isItalic &&
+            (computedStyle.fontStyle === "italic" || node.matches("i,em"))) ||
+          hasDec("i,em")
         ) {
           detectedStyles.isItalic = true;
         }
 
         if (
-          !detectedStyles.isUnderline &&
-          (computedStyle.textDecoration.includes("underline") ||
-            node.matches("u"))
+          (!detectedStyles.isUnderline &&
+            (computedStyle.textDecoration.includes("underline") ||
+              node.matches("u"))) ||
+          hasDec("u")
         ) {
           detectedStyles.isUnderline = true;
         }
 
         if (
-          !detectedStyles.isStrikeout &&
-          (computedStyle.textDecoration.includes("line-through") ||
-            node.matches("s,strike"))
+          (!detectedStyles.isStrikeout &&
+            (computedStyle.textDecoration.includes("line-through") ||
+              node.matches("s,strike"))) ||
+          hasDec("s,strike")
         ) {
           detectedStyles.isStrikeout = true;
         }
@@ -426,15 +431,22 @@ export class StyleManager extends EventEmitter {
         }
 
         // Detect if it's a link
-        if (!detectedStyles.isLink) {
-          detectedStyles.isLink =
-            this.LinkManager?.findClosestAnchor() !== null || false;
+        if (
+          !detectedStyles.isLink &&
+          (node.matches("a[href]") ||
+            hasDec("a[href]") ||
+            this.LinkManager?.findClosestAnchor() !== null)
+        ) {
+          detectedStyles.isLink = true;
         }
       };
 
       // Traverse up from the text node
       while (currentNode && currentNode.nodeType === Node.ELEMENT_NODE) {
-        if (currentNode.matches("[data-typeblox-id]")) {
+        if (
+          currentNode.matches("[data-typeblox-id]") ||
+          currentNode.nodeName === "LI"
+        ) {
           break;
         }
 

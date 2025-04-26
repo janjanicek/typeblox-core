@@ -270,4 +270,61 @@ describe("TypingManager", () => {
 
     expect(typingManager.hasTextSelection()).toBe(true);
   });
+
+  describe("getSelectedElement()", () => {
+    it("returns the deepest inline (<b>) when selecting across flex<span>ible</span>", () => {
+      // Set up a block with nested bold/span
+      document.body.innerHTML = `
+        <p data-typeblox-editor="block" data-typeblox-id="block1" contenteditable="true">
+          Typeblox is a powerful and <b>flex<span style="color: #4500ff">ible</span></b> editor.
+        </p>
+      `;
+      const block = document.querySelector(
+        "[data-typeblox-editor]",
+      ) as HTMLElement;
+      const b = block.querySelector("b") as HTMLElement;
+      const span = block.querySelector("span") as HTMLElement;
+      const textBefore = b.firstChild as Text; // "flex"
+      const textAfter = span.firstChild as Text; // "ible"
+
+      // Select from offset 2 in "flex" (after "fl") through offset 2 in "ible" ("ib")
+      const range = document.createRange();
+      range.setStart(textBefore, 2);
+      range.setEnd(textAfter, 2);
+      const sel = window.getSelection()!;
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      const selectedEl = typingManager.getSelectedElement();
+      expect(selectedEl).toBe(b);
+    });
+
+    it("returns the block container when selection is entirely outside inline tags", () => {
+      document.body.innerHTML = `
+        <p data-typeblox-editor="block" data-typeblox-id="block1" contenteditable="true">
+          <span>Intro</span> Plain text here <i>italic</i> end.
+        </p>
+      `;
+      const block = document.querySelector(
+        "[data-typeblox-editor]",
+      ) as HTMLElement;
+      const plainTextNode = Array.from(block.childNodes).find(
+        (n) => n.nodeType === Node.TEXT_NODE && /Plain/.test(n.textContent!),
+      ) as Text;
+
+      // Select the word "Plain"
+      const start = plainTextNode.textContent!.indexOf("Plain");
+      const end = start + "Plain".length;
+      const range = document.createRange();
+      range.setStart(plainTextNode, start);
+      range.setEnd(plainTextNode, end);
+      const sel = window.getSelection()!;
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      const selectedEl = typingManager.getSelectedElement();
+      // Should fall back to the <p> block itself
+      expect(selectedEl).toBe(block);
+    });
+  });
 });

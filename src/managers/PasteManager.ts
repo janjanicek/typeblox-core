@@ -23,23 +23,25 @@ export class PasteManager {
   }
 
   public pasteContent(e: ClipboardEvent) {
-    if (!this.DOMManager) return;
-    e.preventDefault(); // Prevent default paste behavior
-
-    // Get the pasted HTML or plain text
-    const pastedHTML =
+    e.preventDefault();
+    const html =
       e.clipboardData?.getData("text/html") ||
       e.clipboardData?.getData("text/plain");
+    if (!html) return;
 
-    if (!pastedHTML) return;
-
-    // Sanitize the HTML
-    const cleanHTML = this.DOMManager.sanitizeHTML(pastedHTML);
-
-    const newBlocks = this.DOMManager.parseHTMLToBlocks(cleanHTML);
+    const clean = this.DOMManager!.sanitizeHTML(html);
+    const newBlocks = this.DOMManager!.parseHTMLToBlocks(clean);
 
     if (newBlocks.length > 1) {
-      this.BloxManager?.setBlox([...this.BloxManager.getBlox(), ...newBlocks]);
+      const all = this.BloxManager!.getBlox();
+      const current = this.BloxManager!.getCurrentBlock()!;
+      const idx = all.findIndex((b) => b.id === current.id);
+
+      this.BloxManager!.setBlox([
+        ...all.slice(0, idx + 1),
+        ...newBlocks,
+        ...all.slice(idx + 1),
+      ]);
       return;
     }
 
@@ -50,7 +52,7 @@ export class PasteManager {
 
       range.deleteContents(); // Remove selected content, if any
 
-      const fragment = range.createContextualFragment(cleanHTML);
+      const fragment = range.createContextualFragment(clean);
       range.insertNode(fragment);
 
       // Collapse the selection to the end of the inserted content
