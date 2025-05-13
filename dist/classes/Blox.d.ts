@@ -18,6 +18,10 @@ interface BloxProps {
     style?: string | null;
     classes?: string | null;
     attributes?: string | null;
+    columns?: Column[] | null;
+}
+interface Column {
+    blox: Blox[];
 }
 export declare class Blox extends EventEmitter {
     id: string;
@@ -35,7 +39,8 @@ export declare class Blox extends EventEmitter {
     attributes: string;
     isSelected: boolean;
     _listeners?: Record<string, EventCallback>;
-    constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, HistoryManager, PasteManager, DOMManager, style, classes, attributes, }: BloxProps);
+    columns: Column[];
+    constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, HistoryManager, PasteManager, DOMManager, style, classes, attributes, columns, }: BloxProps);
     getContentElement(): HTMLElement | null;
     getImageURL(): string;
     getVideoURL(): string;

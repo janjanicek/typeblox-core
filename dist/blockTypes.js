@@ -10,8 +10,13 @@ export const BLOCK_TYPES = {
     bulletedList: "bulletedList",
     numberedList: "numberedList",
     blockquote: "blockquote",
+    columns: "columns",
 };
-export const blocksWithoutSelection = [BLOCK_TYPES.image, BLOCK_TYPES.video];
+export const blocksWithoutSelection = [
+    BLOCK_TYPES.image,
+    BLOCK_TYPES.video,
+    BLOCK_TYPES.columns,
+];
 export function addBlockType(blockName, blockKey) {
     BLOCK_TYPES[blockName] = blockKey;
 }
@@ -30,6 +35,7 @@ export const AVAILABLE_BLOCKS = [
     "numberedList",
     "blockquote",
     "html",
+    "columns",
 ];
 export function getAvailableBlocks() {
     return Object.values(BLOCKS_SETTINGS).map((block) => block.blockName);
@@ -253,6 +259,22 @@ export const BLOCKS_SETTINGS = {
         toolbar: "type | font | bold italic underline strikethrough | color bgColor | viewCode",
         icon: "Article",
         availableTypes: ["text", "code", "blockquote"],
+        defaults: {
+            classes: "",
+            attributes: "",
+            styles: "",
+        },
+    },
+    columns: {
+        tag: "div",
+        visibleName: "Columns",
+        blockName: BLOCK_TYPES.columns,
+        description: "Type any content you want",
+        placeholder: "",
+        contentPattern: (content) => `${content}`,
+        toolbar: "type",
+        icon: "Columns2",
+        availableTypes: [],
         defaults: {
             classes: "",
             attributes: "",

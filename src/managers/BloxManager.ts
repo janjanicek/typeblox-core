@@ -36,6 +36,7 @@ export class BloxManager extends EventEmitter {
   private HistoryManager: HistoryManager | null = null;
   private onChange: Function;
   private wasHistoryOperation: boolean;
+  private globalIdCounter = 1000;
 
   constructor(onChange: Function) {
     super();
@@ -70,42 +71,53 @@ export class BloxManager extends EventEmitter {
     this.DOMManager &&
     this.onChange;
 
+  private findBlockContext(
+    id: string,
+    list: Blox[] = this.blocks,
+    parentList: Blox[] | null = null,
+  ): { list: Blox[]; index: number; parentList: Blox[] | null } {
+    for (let i = 0; i < list.length; i++) {
+      const blk = list[i];
+      if (blk.id === id) {
+        return { list, index: i, parentList };
+      }
+      // Search within columns if present
+      if (blk.columns && blk.columns.length) {
+        for (const column of blk.columns) {
+          const colList = column.blox;
+          const found = this.findBlockContext(id, colList, list);
+          if (found.index !== -1) {
+            return found;
+          }
+        }
+      }
+    }
+    return { list: this.blocks, index: -1, parentList: null };
+  }
+
   public addBlockAfter(
     blockId: string,
     type: BlockType,
     content: string = "",
     select: boolean = true,
   ): string | null {
-    const index = this.blocks.findIndex((block) => block.id === blockId);
-    if (index === -1) {
+    const ctx = this.findBlockContext(blockId);
+    if (ctx.index === -1) {
       console.warn(`Block with ID ${blockId} not found`);
       return null;
     }
-
-    const newBlockId = Date.now().toString();
-    const newBlock = this.createBlox({
-      id: newBlockId,
-      type,
-      content,
-    });
-
-    if (!newBlock) {
-      console.error(
-        "Failed to create a new block. Dependencies may not be set.",
-      );
-      return null;
-    }
-
-    // Insert the new block after the found index
-    this.blocks.splice(index + 1, 0, newBlock);
+    const list = ctx.list;
+    const newId = Date.now().toString();
+    const newBlock = this.createBlox({ id: newId, type, content });
+    if (!newBlock) return null;
+    list.splice(ctx.index + 1, 0, newBlock);
     this.sendUpdateEvent();
+    if (select) setTimeout(() => this.DOMManager?.focusBlock(newId, true), 100);
+    return newId;
+  }
 
-    // Optionally focus the new block
-    if (select) {
-      setTimeout(() => this.DOMManager?.focusBlock(newBlockId, true), 100);
-    }
-
-    return newBlockId;
+  public findBlockIndex(blockId: string): number {
+    return this.blocks.findIndex((block) => block.id === blockId);
   }
 
   public addBlockBefore(
@@ -114,41 +126,44 @@ export class BloxManager extends EventEmitter {
     content: string = "",
     select: boolean = true,
   ): string | null {
-    const index = this.blocks.findIndex((block) => block.id === blockId);
-    if (index === -1) {
+    const ctx = this.findBlockContext(blockId);
+    if (ctx.index === -1) {
       console.warn(`Block with ID ${blockId} not found`);
       return null;
     }
-
-    const newBlockId = Date.now().toString();
-    const newBlock = this.createBlox({
-      id: newBlockId,
-      type,
-      content,
-    });
-
-    if (!newBlock) {
-      console.error(
-        "Failed to create a new block. Dependencies may not be set.",
-      );
-      return null;
-    }
-
-    // Insert the new block before the found index
-    this.blocks.splice(index, 0, newBlock);
-
-    this.emit(EVENTS.blocksChanged, [...this.blocks]);
-
-    // Optionally focus the new block
-    if (select) {
-      setTimeout(() => this.DOMManager?.focusBlock(newBlockId, true), 100);
-    }
-
-    return newBlockId;
+    const list = ctx.list;
+    const newId = Date.now().toString();
+    const newBlock = this.createBlox({ id: newId, type, content });
+    if (!newBlock) return null;
+    list.splice(ctx.index, 0, newBlock);
+    this.sendUpdateEvent();
+    if (select) setTimeout(() => this.DOMManager?.focusBlock(newId, true), 100);
+    return newId;
   }
 
   public getBlockById(id: string | undefined): Blox | undefined {
-    return this.blocks?.find((block: Blox) => block.id === id);
+    if (!id) return undefined;
+    const { list, index } = this.findBlockContext(id);
+    return index !== -1 ? list[index] : undefined;
+  }
+
+  public getBlockIndex(id: string | undefined): number {
+    if (!id) return -1;
+    const { index } = this.findBlockContext(id);
+    return index;
+  }
+
+  public getParentBlockId(id: string): string | null {
+    const topLevelParent = this.findBlockContext(id);
+    if (topLevelParent.parentList === null) {
+      return null; // This block is a top-level block, so it has no parent
+    }
+
+    const { parentList } = topLevelParent;
+    if (parentList.length === 1) {
+      return parentList[0].id; // This block is the only child of its parent
+    }
+    return null;
   }
 
   public getBlox(): Blox[] {
@@ -241,19 +256,17 @@ export class BloxManager extends EventEmitter {
     attributes = "",
   }: CreateBloxParams): Blox | null {
     if (!this.areDependenciesSet()) return null;
-
-    const generateId = id || Date.now().toString();
+    const generateId = id ?? `${Date.now()}-${this.globalIdCounter++}`;
     const blockSettings = BLOCKS_SETTINGS[type];
-    const updatedContent = content.trim() === "/" ? "" : content;
-    const newBlockContent =
-      updatedContent.trim() === ""
-        ? blockSettings.contentPattern(updatedContent)
-        : updatedContent;
-
+    const newContent = content.trim() === "/" ? "" : content;
+    const finalContent =
+      newContent.trim() === ""
+        ? blockSettings.contentPattern(newContent)
+        : newContent;
     const block = new Blox({
       id: generateId,
       type,
-      content: newBlockContent,
+      content: finalContent,
       onUpdate: this.onChange,
       TypingManager: this.TypingManager!,
       StyleManager: this.StyleManager!,
@@ -265,6 +278,13 @@ export class BloxManager extends EventEmitter {
       attributes,
     });
     this.registerEvents(block);
+
+    if (type === BLOCK_TYPES.columns) {
+      block.columns = [
+        { blox: [this.createBlox({ type: BLOCK_TYPES.text, content: "" })!] },
+        { blox: [this.createBlox({ type: BLOCK_TYPES.text, content: "" })!] },
+      ];
+    }
     return block;
   }
 
@@ -296,83 +316,72 @@ export class BloxManager extends EventEmitter {
   }
 
   public removeById(blockId: string): boolean {
-    const index = this.blocks.findIndex((block) => block.id === blockId);
+    const { list, index, parentList } = this.findBlockContext(blockId);
+    if (index === -1) return false;
 
-    if (index === -1) {
-      return false;
-    }
-
-    // Remove the block from the array
-    this.blocks.splice(index, 1);
+    // remove it
+    list.splice(index, 1);
     this.HistoryManager?.saveState();
 
-    if (this.blocks.length === 0) {
-      // If removing the last block, add a new empty one.
-      const newBlock = this.createBlox({});
-      if (newBlock) {
-        this.setBlox([newBlock]);
-      }
+    // if we just emptied a columns wrapper, you might want to delete it too:
+    if (parentList && list.length === 0) {
+      const { list: grandList, index: parentIdx } = this.findBlockContext(
+        parentList[index - 1]?.id!,
+      );
+      grandList.splice(parentIdx, 1);
     }
 
-    // Emit the blocksChanged event
-    this.sendUpdateEvent();
+    // if top-level went empty, add a blank
+    this.fillContextWithEmptyBlock(list);
 
+    this.sendUpdateEvent();
     return true;
   }
 
-  public moveBlock(blockId: string, newIndex: number): boolean {
-    const currentIndex = this.blocks.findIndex((block) => block.id === blockId);
-
-    // Prevent invalid moves
-    if (
-      currentIndex === -1 ||
-      newIndex < 0 ||
-      newIndex >= this.blocks.length ||
-      currentIndex === newIndex
-    ) {
-      return false;
+  public fillContextWithEmptyBlock(ctx: Blox[]): void {
+    if (ctx.length === 0) {
+      const newBlock = this.createBlox({ type: BLOCK_TYPES.text });
+      if (newBlock) ctx.push(newBlock);
     }
+  }
 
-    // Remove block from current position
-    const [movedBlock] = this.blocks.splice(currentIndex, 1);
+  public moveBlock(
+    blockId: string,
+    newIndex: number,
+    overElementId?: string,
+  ): boolean {
+    // source
+    const { list: fromList, index: fromIdx } = this.findBlockContext(blockId);
+    if (fromIdx === -1) return false;
 
-    // Insert block at the new index
-    this.blocks.splice(newIndex, 0, movedBlock);
+    // remove it
+    const [moved] = fromList.splice(fromIdx, 1);
+
+    // destination list: either the same list, or a nested column
+    const toList = overElementId
+      ? this.findBlockContext(overElementId).list
+      : fromList;
+
+    // clamp newIndex
+    const destIdx = Math.min(Math.max(newIndex, 0), toList.length);
+
+    toList.splice(destIdx, 0, moved);
 
     this.sendUpdateEvent();
+    this.fillContextWithEmptyBlock(fromList);
     return true;
   }
 
   public moveBlockUp(blockId: string): boolean {
-    const index = this.blocks.findIndex((block) => block.id === blockId);
-
-    if (index <= 0) {
-      return false;
-    }
-
-    [this.blocks[index - 1], this.blocks[index]] = [
-      this.blocks[index],
-      this.blocks[index - 1],
-    ];
-
-    this.sendUpdateEvent();
-    return true;
+    const { index } = this.findBlockContext(blockId);
+    if (index <= 0) return false;
+    return this.moveBlock(blockId, index - 1);
   }
 
   public moveBlockDown(blockId: string): boolean {
-    const index = this.blocks.findIndex((block) => block.id === blockId);
-
-    if (index === -1 || index >= this.blocks.length - 1) {
-      return false;
-    }
-
-    [this.blocks[index], this.blocks[index + 1]] = [
-      this.blocks[index + 1],
-      this.blocks[index],
-    ];
-
-    this.sendUpdateEvent();
-    return true;
+    const { list, index } = this.findBlockContext(blockId);
+    if (index === -1 || index >= list.length - 1) return false;
+    return this.moveBlock(blockId, index + 1);
   }
 
   public split(blockId: string): void {
@@ -434,15 +443,13 @@ export class BloxManager extends EventEmitter {
   }
 
   public getPreviousBlock(blockId: string): Blox | null {
-    const blockIndex = this.blocks.findIndex((block) => block.id === blockId);
-    if (blockIndex <= 0) return null;
-    return this.blocks[blockIndex - 1];
+    const { list, index } = this.findBlockContext(blockId);
+    return index > 0 ? list[index - 1] : null;
   }
 
   public getNextBlock(blockId: string): Blox | null {
-    const blockIndex = this.blocks.findIndex((block) => block.id === blockId);
-    if (blockIndex >= this.blocks.length) return null;
-    return this.blocks[blockIndex + 1];
+    const { list, index } = this.findBlockContext(blockId);
+    return index !== -1 && index < list.length - 1 ? list[index + 1] : null;
   }
 
   private canBeMerged(currentBlock: Blox, previousBlock: Blox): boolean {
@@ -455,53 +462,44 @@ export class BloxManager extends EventEmitter {
   }
 
   public merge(blockId: string): void {
-    const blockIndex = this.blocks.findIndex((block) => block.id === blockId);
-    if (blockIndex <= 0) return; // No previous block to merge with
+    // locate the block within its list (top-level or column)
+    const ctx = this.findBlockContext(blockId);
+    const { list, index } = ctx;
 
-    const currentBlock = this.blocks[blockIndex];
-    const previousBlock = this.blocks[blockIndex - 1];
+    // nothing to merge if at start of list
+    if (index <= 0) return;
+
+    const currentBlock = list[index];
+    const previousBlock = list[index - 1];
 
     if (!this.canBeMerged(currentBlock, previousBlock)) return;
-
-    const previousBlockElement = this.DOMManager?.getBlockElementById(
-      previousBlock.id,
-    );
-    const currentBlockElement = this.DOMManager?.getBlockElementById(
-      currentBlock.id,
-    );
-
-    if (!previousBlockElement || !currentBlockElement) return;
+    const prevEl = this.DOMManager?.getBlockElementById(previousBlock.id);
+    const currEl = this.DOMManager?.getBlockElementById(currentBlock.id);
+    if (!prevEl || !currEl) return;
 
     const markerId = `merge-marker-${Date.now()}`;
     const marker = document.createElement("span");
     marker.id = markerId;
-    marker.style.opacity = "0"; // Make it invisible
-    marker.style.position = "absolute"; // Prevent affecting layout
-    marker.textContent = "\u200B"; // Zero-width space to ensure it's focusable
+    marker.style.opacity = "0";
+    marker.style.position = "absolute";
+    marker.textContent = "\u200B";
 
-    previousBlockElement.appendChild(marker);
-    previousBlockElement.innerHTML += currentBlock.content;
+    prevEl.appendChild(marker);
+    prevEl.innerHTML += currentBlock.content;
 
-    this.blocks.splice(blockIndex, 1);
-
-    const updatedPreviousBlockElement = this.DOMManager?.getBlockElementById(
+    list.splice(index, 1);
+    const updatedPrevEl = this.DOMManager?.getBlockElementById(
       previousBlock.id,
     );
-    const markerElement = updatedPreviousBlockElement?.querySelector(
-      `#${markerId}`,
-    );
-
-    if (markerElement) {
+    const markerEl = updatedPrevEl?.querySelector(`#${markerId}`);
+    if (markerEl) {
       const range = document.createRange();
-      const selection = window.getSelection();
-      range.setStartAfter(markerElement);
+      const sel = window.getSelection();
+      range.setStartAfter(markerEl);
       range.collapse(true);
-
-      if (selection) {
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-      setTimeout(() => markerElement.remove(), 50);
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+      setTimeout(() => markerEl.remove(), 50);
     }
 
     this.sendUpdateEvent();

@@ -30,13 +30,18 @@ export declare class BloxManager extends EventEmitter {
     private HistoryManager;
     private onChange;
     private wasHistoryOperation;
+    private globalIdCounter;
     constructor(onChange: Function);
     updateChange(onChange: Function): void;
     setDependencies(TypingManager: TypingManager, FormatManager: StyleManager, PasteManager: PasteManager, DOMManager: DOMManager, HistoryManager: HistoryManager): void;
     private areDependenciesSet;
+    private findBlockContext;
     addBlockAfter(blockId: string, type: BlockType, content?: string, select?: boolean): string | null;
+    findBlockIndex(blockId: string): number;
     addBlockBefore(blockId: string, type: BlockType, content?: string, select?: boolean): string | null;
     getBlockById(id: string | undefined): Blox | undefined;
+    getBlockIndex(id: string | undefined): number;
+    getParentBlockId(id: string): string | null;
     getBlox(): Blox[];
     setBlox(newBlox: Blox[], isHistoryOperation?: boolean): void;
     isAllSelected(): boolean;
@@ -48,7 +53,8 @@ export declare class BloxManager extends EventEmitter {
     createBlox({ id, type, content, style, classes, attributes, }: CreateBloxParams): Blox | null;
     private registerEvents;
     removeById(blockId: string): boolean;
-    moveBlock(blockId: string, newIndex: number): boolean;
+    fillContextWithEmptyBlock(ctx: Blox[]): void;
+    moveBlock(blockId: string, newIndex: number, overElementId?: string): boolean;
     moveBlockUp(blockId: string): boolean;
     moveBlockDown(blockId: string): boolean;
     split(blockId: string): void;

@@ -4,9 +4,10 @@ import { BLOCKS_SETTINGS, BLOCK_TYPES } from "../blockTypes";
 import { convertToCamelCase } from "../utils/css";
 import { isEmpty } from "../utils/elements";
 export class Blox extends EventEmitter {
-    constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, HistoryManager, PasteManager, DOMManager, style, classes, attributes, }) {
+    constructor({ onUpdate, id, type, content, TypingManager, StyleManager: FormatManager, HistoryManager, PasteManager, DOMManager, style, classes, attributes, columns, }) {
         var _a, _b, _c;
         super();
+        this.columns = []; // Initialize the subBlocks array
         this.updateContent = () => {
             var _a;
             const liveElement = this.getContentElement();
@@ -35,7 +36,11 @@ export class Blox extends EventEmitter {
             this.updateContent();
             return this.content;
         };
-        this.isContentEmpty = () => /^[\s\u00A0\u200B]*$/.test(this.content);
+        this.isContentEmpty = () => {
+            const contentEmpty = /^[\s\u00A0\u200B]*$/.test(this.content);
+            const hasColumnContent = this.columns.some((column) => column.blox.some((child) => !child.isContentEmpty()));
+            return contentEmpty && !hasColumnContent;
+        };
         this.setContent = (contentString) => {
             if (this.type === BLOCK_TYPES.image || this.type === BLOCK_TYPES.video) {
                 this.content = contentString; // Store the raw image URL
@@ -66,6 +71,7 @@ export class Blox extends EventEmitter {
         this.contentElement = this.getContentElement();
         this.onUpdate = onUpdate;
         this.type = type !== null && type !== void 0 ? type : "text";
+        this.columns = columns !== null && columns !== void 0 ? columns : [];
         const defaultStyles = (_a = BLOCKS_SETTINGS[this.type].defaults.styles) !== null && _a !== void 0 ? _a : "";
         const defaultClasses = (_b = BLOCKS_SETTINGS[this.type].defaults.classes) !== null && _b !== void 0 ? _b : "";
         const defaultAttributes = (_c = BLOCKS_SETTINGS[this.type].defaults.attributes) !== null && _c !== void 0 ? _c : "";

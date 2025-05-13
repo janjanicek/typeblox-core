@@ -23,6 +23,11 @@ interface BloxProps {
   style?: string | null;
   classes?: string | null;
   attributes?: string | null;
+  columns?: Column[] | null;
+}
+
+interface Column {
+  blox: Blox[];
 }
 
 export class Blox extends EventEmitter {
@@ -41,6 +46,7 @@ export class Blox extends EventEmitter {
   attributes: string;
   isSelected: boolean;
   _listeners?: Record<string, EventCallback>;
+  columns: Column[] = []; // Initialize the subBlocks array
 
   constructor({
     onUpdate,
@@ -55,6 +61,7 @@ export class Blox extends EventEmitter {
     style,
     classes,
     attributes,
+    columns,
   }: BloxProps) {
     super();
     this.id = id ?? Date.now().toString();
@@ -67,6 +74,7 @@ export class Blox extends EventEmitter {
     this.contentElement = this.getContentElement();
     this.onUpdate = onUpdate;
     this.type = type ?? "text";
+    this.columns = columns ?? [];
 
     const defaultStyles = BLOCKS_SETTINGS[this.type].defaults.styles ?? "";
     const defaultClasses = BLOCKS_SETTINGS[this.type].defaults.classes ?? "";
@@ -133,7 +141,13 @@ export class Blox extends EventEmitter {
     return this.content;
   };
 
-  public isContentEmpty = () => /^[\s\u00A0\u200B]*$/.test(this.content);
+  public isContentEmpty = (): boolean => {
+    const contentEmpty = /^[\s\u00A0\u200B]*$/.test(this.content);
+    const hasColumnContent = this.columns.some((column) =>
+      column.blox.some((child) => !child.isContentEmpty()),
+    );
+    return contentEmpty && !hasColumnContent;
+  };
 
   public setContent = (contentString: string) => {
     if (this.type === BLOCK_TYPES.image || this.type === BLOCK_TYPES.video) {

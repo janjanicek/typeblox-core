@@ -21,6 +21,24 @@ describe("DOMManager", () => {
     mockBloxManager = {
       createBlox: jest.fn(),
     } as unknown as jest.Mocked<BloxManager>;
+
+    mockBloxManager.createBlox.mockImplementation((params) => {
+      return new Blox({
+        id: params.id || "sample-id",
+        type: params.type || BLOCK_TYPES.text,
+        content: params.content || "",
+        style: params.style,
+        classes: params.classes,
+        attributes: params.attributes,
+        onUpdate: jest.fn(),
+        TypingManager: {} as any, // Mocking TypingManager, you can adjust this
+        StyleManager: {} as any, // Mocking StyleManager
+        PasteManager: {} as any, // Mocking PasteManager
+        DOMManager: {} as any, // Mocking DOMManager
+        HistoryManager: {} as any, // Mocking HistoryManager
+      });
+    });
+
     mockTypingManager = {
       getLastMeaningfulNode: jest.fn(),
       getFirstMeaningfulNode: jest.fn(),
@@ -123,7 +141,7 @@ describe("DOMManager", () => {
       const result = domManager.blocksToHTML(blocks);
 
       expect(result).toBe(
-        '<p data-tbx-block="video" style="" ><iframe src="https://www.youtube.com/embed/koqBd2H6UqU?si=p9BZVH_k6pS-8i_a" style="color: red; " class="example-class " width="560" height="315" ></iframe></p>',
+        '<p data-tbx-block="video" style=""><iframe src="https://www.youtube.com/embed/koqBd2H6UqU?si=p9BZVH_k6pS-8i_a" style="color: red; " class="example-class " width="560" height="315" ></iframe></p>',
       );
     });
 
@@ -145,6 +163,190 @@ describe("DOMManager", () => {
       const result = domManager.blocksToHTML(blocks);
 
       expect(result).toBe("");
+    });
+
+    it("should convert an image block to HTML", () => {
+      const blocks: Blox[] = [
+        new Blox({
+          id: "1",
+          content: "image.png",
+          type: BLOCK_TYPES.image,
+          onUpdate: jest.fn(),
+          TypingManager: jest.fn() as any,
+          StyleManager: jest.fn() as any,
+          PasteManager: jest.fn() as any,
+          DOMManager: createDOMManagerMock(),
+          HistoryManager: jest.fn() as any,
+          style: "width: 100px;",
+          classes: "image-class",
+          attributes: 'alt="Image" data-tbx-alignment="center"',
+        }),
+      ];
+
+      const result = domManager.blocksToHTML(blocks);
+
+      expect(result).toBe(
+        '<p data-tbx-block="image" style="text-align: center"><img src="image.png" style="width: 100px; " class="image-class " alt="Image" data-tbx-alignment="center"/></p>',
+      );
+    });
+
+    it("should convert column blocks to HTML", () => {
+      const blocks: Blox[] = [
+        new Blox({
+          id: "1",
+          content: "",
+          type: BLOCK_TYPES.columns,
+          onUpdate: jest.fn(),
+          TypingManager: jest.fn() as any,
+          StyleManager: jest.fn() as any,
+          PasteManager: jest.fn() as any,
+          DOMManager: createDOMManagerMock(),
+          HistoryManager: jest.fn() as any,
+          style: "background: #f0f0f0;",
+          classes: "columns-class",
+          attributes: "",
+          columns: [
+            {
+              blox: [
+                new Blox({
+                  id: "2",
+                  content: "Column 1",
+                  type: BLOCK_TYPES.text,
+                  onUpdate: jest.fn(),
+                  TypingManager: jest.fn() as any,
+                  StyleManager: jest.fn() as any,
+                  PasteManager: jest.fn() as any,
+                  DOMManager: createDOMManagerMock(),
+                  HistoryManager: jest.fn() as any,
+                  style: "",
+                  classes: "",
+                }),
+              ],
+            },
+            {
+              blox: [
+                new Blox({
+                  id: "3",
+                  content: "Column 2",
+                  type: BLOCK_TYPES.text,
+                  onUpdate: jest.fn(),
+                  TypingManager: jest.fn() as any,
+                  StyleManager: jest.fn() as any,
+                  PasteManager: jest.fn() as any,
+                  DOMManager: createDOMManagerMock(),
+                  HistoryManager: jest.fn() as any,
+                  style: "",
+                  classes: "",
+                }),
+              ],
+            },
+          ],
+        }),
+      ];
+
+      const result = domManager.blocksToHTML(blocks);
+
+      expect(result).toBe(
+        '<div data-tbx-block="columns" style="background: #f0f0f0; " class="columns-class "><div class="tbx-columns" style="display: flex; gap: 1em;"><div class="tbx-column" style="flex: 1;"><p style="" class="" >Column 1</p></div><div class="tbx-column" style="flex: 1;"><p style="" class="" >Column 2</p></div></div></div>',
+      );
+    });
+
+    it("should convert nested column blocks to HTML", () => {
+      const blocks: Blox[] = [
+        new Blox({
+          id: "1",
+          content: "",
+          type: BLOCK_TYPES.columns,
+          onUpdate: jest.fn(),
+          TypingManager: jest.fn() as any,
+          StyleManager: jest.fn() as any,
+          PasteManager: jest.fn() as any,
+          DOMManager: createDOMManagerMock(),
+          HistoryManager: jest.fn() as any,
+          style: "background: #f0f0f0;",
+          classes: "columns-class",
+          attributes: "",
+          columns: [
+            {
+              blox: [
+                new Blox({
+                  id: "2",
+                  content: "Column 1",
+                  type: BLOCK_TYPES.text,
+                  onUpdate: jest.fn(),
+                  TypingManager: jest.fn() as any,
+                  StyleManager: jest.fn() as any,
+                  PasteManager: jest.fn() as any,
+                  DOMManager: createDOMManagerMock(),
+                  HistoryManager: jest.fn() as any,
+                  style: "",
+                  classes: "",
+                }),
+              ],
+            },
+            {
+              blox: [
+                new Blox({
+                  id: "3",
+                  content: "Column 2",
+                  type: BLOCK_TYPES.columns, // Nested columns
+                  onUpdate: jest.fn(),
+                  TypingManager: jest.fn() as any,
+                  StyleManager: jest.fn() as any,
+                  PasteManager: jest.fn() as any,
+                  DOMManager: createDOMManagerMock(),
+                  HistoryManager: jest.fn() as any,
+                  style: "background: #e0e0e0;",
+                  classes: "nested-columns",
+                  attributes: "",
+                  columns: [
+                    {
+                      blox: [
+                        new Blox({
+                          id: "4",
+                          content: "Nested Column 1",
+                          type: BLOCK_TYPES.text,
+                          onUpdate: jest.fn(),
+                          TypingManager: jest.fn() as any,
+                          StyleManager: jest.fn() as any,
+                          PasteManager: jest.fn() as any,
+                          DOMManager: createDOMManagerMock(),
+                          HistoryManager: jest.fn() as any,
+                          style: "",
+                          classes: "",
+                        }),
+                      ],
+                    },
+                    {
+                      blox: [
+                        new Blox({
+                          id: "5",
+                          content: "Nested Column 2",
+                          type: BLOCK_TYPES.text,
+                          onUpdate: jest.fn(),
+                          TypingManager: jest.fn() as any,
+                          StyleManager: jest.fn() as any,
+                          PasteManager: jest.fn() as any,
+                          DOMManager: createDOMManagerMock(),
+                          HistoryManager: jest.fn() as any,
+                          style: "",
+                          classes: "",
+                        }),
+                      ],
+                    },
+                  ],
+                }),
+              ],
+            },
+          ],
+        }),
+      ];
+
+      const result = domManager.blocksToHTML(blocks);
+
+      expect(result).toBe(
+        '<div data-tbx-block="columns" style="background: #f0f0f0; " class="columns-class "><div class="tbx-columns" style="display: flex; gap: 1em;"><div class="tbx-column" style="flex: 1;"><p style="" class="" >Column 1</p></div><div class="tbx-column" style="flex: 1;"><div data-tbx-block="columns" style="background: #e0e0e0; " class="nested-columns "><div class="tbx-columns" style="display: flex; gap: 1em;"><div class="tbx-column" style="flex: 1;"><p style="" class="" >Nested Column 1</p></div><div class="tbx-column" style="flex: 1;"><p style="" class="" >Nested Column 2</p></div></div></div></div></div></div>',
+      );
     });
   });
 
@@ -321,6 +523,142 @@ describe("DOMManager", () => {
         classes: null,
         style: "margin: auto",
       });
+    });
+
+    it("should parse block attributes correctly", () => {
+      const htmlString =
+        '<div data-tbx-block="image"><img src="image.png" data-tbx-alignment="center" style="margin: auto"/></div>';
+      const blocks = domManager.parseHTMLToBlocks(htmlString);
+
+      expect(mockBloxManager.createBlox).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: 'data-tbx-alignment="center"', // Correct attributes parsed
+          style: "margin: auto", // Correct style attribute
+        }),
+      );
+    });
+
+    it("should create empty blocks when no child content is found", () => {
+      const htmlString =
+        "<div data-tbx-block='columns'><div class='tbx-columns'><div class='tbx-column'></div></div></div>";
+      const blocks = domManager.parseHTMLToBlocks(htmlString);
+
+      // Check if an empty block was created for an empty column
+      expect(mockBloxManager.createBlox).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: expect.any(String),
+          type: BLOCK_TYPES.text, // or whatever default block type you use
+          content: "", // empty content for the block
+        }),
+      );
+    });
+
+    it("should parse columns correctly", () => {
+      const htmlString =
+        "<div data-tbx-block='columns'><div class='tbx-columns'><div class='tbx-column'><p>Text</p></div><div class='tbx-column'><p>Text2</p></div></div></div>";
+      const blocks = domManager.parseHTMLToBlocks(htmlString);
+
+      expect(mockBloxManager.createBlox).toHaveBeenCalledTimes(3); // One for the column, one for the block inside
+      expect(mockBloxManager.createBlox).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          type: BLOCK_TYPES.columns, // Correct block type for columns
+          content: "", // Empty content for columns block
+        }),
+      );
+
+      expect(mockBloxManager.createBlox).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          type: BLOCK_TYPES.text, // Correct block type for text
+          content: "Text", // Content inside the column
+        }),
+      );
+
+      expect(mockBloxManager.createBlox).toHaveBeenNthCalledWith(
+        3,
+        expect.objectContaining({
+          type: BLOCK_TYPES.text, // Correct block type for text
+          content: "Text2", // Content inside the column
+        }),
+      );
+    });
+
+    it("should parse nested columns correctly", () => {
+      const htmlString = `
+        <div data-tbx-block='columns'>
+          <div class='tbx-columns'>
+            <div class='tbx-column'>
+              <p>Column 1 Content</p>
+            </div>
+            <div class='tbx-column'>
+              <div data-tbx-block='columns'>
+                <div class='tbx-columns'>
+                  <div class='tbx-column'>
+                    <p>Nested Column 1 Content</p>
+                  </div>
+                  <div class='tbx-column'>
+                    <p>Nested Column 2 Content</p>
+                  </div>
+                </div>
+              </div>
+              <p>Column 2 Content</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const blocks = domManager.parseHTMLToBlocks(htmlString);
+
+      expect(mockBloxManager.createBlox).toHaveBeenCalledTimes(6);
+
+      expect(mockBloxManager.createBlox).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          type: BLOCK_TYPES.columns, // Correct block type for text
+          content: "", // Content inside the column
+        }),
+      );
+
+      expect(mockBloxManager.createBlox).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          type: BLOCK_TYPES.text, // Correct block type for text
+          content: "Column 1 Content", // Content inside the column
+        }),
+      );
+
+      expect(mockBloxManager.createBlox).toHaveBeenNthCalledWith(
+        3,
+        expect.objectContaining({
+          type: BLOCK_TYPES.columns, // Correct block type for text
+          content: "", // Content inside the column
+        }),
+      );
+
+      expect(mockBloxManager.createBlox).toHaveBeenNthCalledWith(
+        4,
+        expect.objectContaining({
+          type: BLOCK_TYPES.text, // Correct block type for text
+          content: "Nested Column 1 Content", // Content inside the column
+        }),
+      );
+
+      expect(mockBloxManager.createBlox).toHaveBeenNthCalledWith(
+        5,
+        expect.objectContaining({
+          type: BLOCK_TYPES.text, // Correct block type for text
+          content: "Nested Column 2 Content", // Content inside the column
+        }),
+      );
+
+      expect(mockBloxManager.createBlox).toHaveBeenNthCalledWith(
+        6,
+        expect.objectContaining({
+          type: BLOCK_TYPES.text, // Correct block type for text
+          content: "Column 2 Content", // Content inside the column
+        }),
+      );
     });
 
     it("should warn if BloxManager is not initialized", () => {

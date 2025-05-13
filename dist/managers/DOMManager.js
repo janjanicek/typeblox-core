@@ -82,11 +82,20 @@ export class DOMManager {
             doc.body.querySelectorAll("*").forEach(sanitizeNode);
             return doc.body.innerHTML; // Return the sanitized HTML
         };
-        this.isEmptyContent = (content) => !content || content.trim() === "" || content.trim() === "&nbsp;";
+        this.isEmptyContent = (block) => {
+            var _a, _b;
+            if (!block)
+                return true;
+            if (block.type === BLOCK_TYPES.columns) {
+                return block.columns.every((column) => column.blox.every((child) => this.isEmptyContent(child)));
+            }
+            const txt = (_b = (_a = block.content) === null || _a === void 0 ? void 0 : _a.trim()) !== null && _b !== void 0 ? _b : "";
+            return txt === "" || txt === "&nbsp;";
+        };
         this.blocksToHTML = (blocks) => blocks
             .map((block) => {
             var _a;
-            if (this.isEmptyContent(block.content)) {
+            if (this.isEmptyContent(block)) {
                 return "";
             }
             const tagName = (_a = BLOCKS_SETTINGS[block.type]) === null || _a === void 0 ? void 0 : _a.tag;
@@ -103,64 +112,75 @@ export class DOMManager {
             if (block.type === BLOCK_TYPES.image) {
                 let styles = "";
                 const alignment = block.getAttributes()["data-tbx-alignment"];
-                if (alignment) {
-                    switch (alignment) {
-                        case "center":
-                            styles = "text-align: center";
-                            break;
-                        case "right":
-                            styles = "float: right";
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                return `<p data-tbx-block="${block.type}" style="${styles}" ><${BLOCKS_SETTINGS[block.type].tag} src="${block.content}" style="${block.styles}" class="${block.classes}" ${attributes}/></p>`;
+                if (alignment === "center")
+                    styles = "text-align: center";
+                else if (alignment === "right")
+                    styles = "float: right";
+                return `<p data-tbx-block="${block.type}" style="${styles}"><${tagName} src="${block.content}" style="${block.styles}" class="${block.classes}" ${attributes}/></p>`;
             }
-            else if (block.type === BLOCK_TYPES.video) {
+            if (block.type === BLOCK_TYPES.video) {
                 let styles = "";
                 const alignment = block.getAttributes()["data-tbx-alignment"];
-                if (alignment) {
-                    switch (alignment) {
-                        case "center":
-                            styles = "text-align: center";
-                            break;
-                        case "right":
-                            styles = "float: right";
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                return `<p data-tbx-block="${block.type}" style="${styles}" ><iframe src="${block.content}" style="${block.styles}" class="${block.classes}" width="${block.getAttributes()["width"] || 560}" height="${block.getAttributes()["height"] || 315}" ${attributes}></iframe></p>`;
+                if (alignment === "center")
+                    styles = "text-align: center";
+                else if (alignment === "right")
+                    styles = "float: right";
+                const width = block.getAttributes()["width"] || 560;
+                const height = block.getAttributes()["height"] || 315;
+                return `<p data-tbx-block="${block.type}" style="${styles}"><iframe src="${block.content}" style="${block.styles}" class="${block.classes}" width="${width}" height="${height}" ${attributes}></iframe></p>`;
             }
-            else if (block.type === BLOCK_TYPES.code) {
+            if (block.type === BLOCK_TYPES.code) {
                 return `<pre data-tbx-block="${BLOCK_TYPES.code}"><code style="${block.styles}" class="${block.classes}" ${attributes}>${block.content}</code></pre>`;
             }
-            else {
-                return `<${tagName} style="${block.styles}" class="${block.classes}" ${attributes}>${block.content}</${tagName}>`;
+            if (block.type === BLOCK_TYPES.columns) {
+                const hasContent = block.columns.some((col) => col.blox.some((child) => !this.isEmptyContent(child)));
+                if (!hasContent)
+                    return "";
+                const wrapperAttrs = [
+                    `data-tbx-block="${block.type}"`,
+                    block.styles && `style="${block.styles}"`,
+                    block.classes && `class="${block.classes}"`,
+                    attributes,
+                ]
+                    .filter(Boolean)
+                    .join(" ");
+                // Render each column’s children recursively
+                const colsHTML = block.columns
+                    .map((col) => `<div class="tbx-column" style="flex: 1;">${this.blocksToHTML(col.blox)}</div>`)
+                    .join("");
+                return `<div ${wrapperAttrs}><div class="tbx-columns" style="display: flex; gap: 1em;">${colsHTML}</div></div>`;
             }
+            return `<${tagName} style="${block.styles}" class="${block.classes}" ${attributes}>${block.content}</${tagName}>`;
         })
             .join("");
         this.getBlockElementById = (blockId) => document.querySelector(`[data-typeblox-id="${blockId}"]`);
         this.getBlockElement = () => {
-            var _a, _b;
             const activeElement = document.activeElement;
-            if (activeElement instanceof HTMLElement &&
+            const parentBlockElement = (activeElement === null || activeElement === void 0 ? void 0 : activeElement.getAttribute("role")) !== "button"
+                ? activeElement === null || activeElement === void 0 ? void 0 : activeElement.closest(".tbx-block")
+                : activeElement;
+            const isEditorContainer = (activeElement) => {
+                var _a, _b;
+                return ((_a = this.EditorManager) === null || _a === void 0 ? void 0 : _a.editorContainer)
+                    ? activeElement ===
+                        document.querySelector((_b = this.EditorManager) === null || _b === void 0 ? void 0 : _b.editorContainer)
+                    : false;
+            };
+            if (parentBlockElement &&
+                activeElement instanceof HTMLElement &&
                 activeElement !== document.body &&
-                ((_a = this.EditorManager) === null || _a === void 0 ? void 0 : _a.editorContainer) &&
-                activeElement !==
-                    document.querySelector((_b = this.EditorManager) === null || _b === void 0 ? void 0 : _b.editorContainer)) {
+                !isEditorContainer(activeElement)) {
                 if (activeElement.hasAttribute("data-typeblox-id")) {
                     return activeElement;
                 }
-                const nestedBlock = activeElement.querySelector("[data-typeblox-id]");
+                const nestedBlock = parentBlockElement.querySelector("[data-typeblox-id]");
                 if (nestedBlock instanceof HTMLElement) {
                     return nestedBlock;
                 }
-                const closedParent = activeElement.closest("[data-typeblox-id]");
-                if (closedParent instanceof HTMLElement)
+                const closedParent = parentBlockElement.closest("[data-typeblox-id]");
+                if (closedParent instanceof HTMLElement) {
                     return closedParent;
+                }
             }
             const selection = window.getSelection();
             // Check if there's a valid selection and at least one range
@@ -230,7 +250,7 @@ export class DOMManager {
         this.getCurrentDOM = () => {
             var _a, _b;
             const blocks = (_b = (_a = this.BloxManager) === null || _a === void 0 ? void 0 : _a.getBlox()) !== null && _b !== void 0 ? _b : [];
-            const clonedBlocks = blocks === null || blocks === void 0 ? void 0 : blocks.map((block) => new Blox(Object.assign(Object.assign({}, block), { style: block.styles, classes: block.classes, attributes: block.attributes })));
+            const clonedBlocks = blocks === null || blocks === void 0 ? void 0 : blocks.map((block) => new Blox(Object.assign(Object.assign({}, block), { style: block.styles, classes: block.classes, attributes: block.attributes, columns: block.columns })));
             clonedBlocks === null || clonedBlocks === void 0 ? void 0 : clonedBlocks.forEach((block) => {
                 block.updateContent(); // update the content and removeSelection if exist.
             });
@@ -246,43 +266,79 @@ export class DOMManager {
             const doc = parser.parseFromString(htmlString, "text/html");
             let idCounter = 1;
             const generateId = () => `${Date.now()}${idCounter++}`;
-            const blocks = Array.from(doc.body.children)
-                .map((element) => {
-                var _a, _b, _c, _d, _e;
-                let predefinedBlockType = element.getAttribute("data-tbx-block") || "";
-                const tagName = element.tagName.toLowerCase();
-                if (tagName === "img")
-                    predefinedBlockType = BLOCK_TYPES.image;
-                if (tagName === "iframe" &&
-                    this.LinkManager &&
-                    this.LinkManager.isYouTubeIframeVideo(element)) {
-                    predefinedBlockType = BLOCK_TYPES.video;
-                }
-                const predefinedTag = (_a = BLOCKS_SETTINGS[predefinedBlockType]) === null || _a === void 0 ? void 0 : _a.tag;
-                const type = predefinedTag || tagName;
-                let finalElement = this.getFinalElement(element, predefinedTag) || element;
-                const blockSetting = Object.values(BLOCKS_SETTINGS).find((setting) => setting.tag === type);
-                return blockSetting
-                    ? (_b = this.BloxManager) === null || _b === void 0 ? void 0 : _b.createBlox({
-                        id: generateId(),
-                        type: blockSetting.blockName,
-                        content: predefinedBlockType === BLOCK_TYPES.video
-                            ? ((_c = finalElement.getAttribute("src")) !== null && _c !== void 0 ? _c : "")
-                            : predefinedBlockType === BLOCK_TYPES.image
-                                ? ((_d = finalElement.getAttribute("src")) !== null && _d !== void 0 ? _d : "")
-                                : finalElement.innerHTML.trim(),
-                        style: finalElement.getAttribute("style"),
-                        classes: finalElement.getAttribute("class"),
-                        attributes: getAllowedAttributes(finalElement),
-                    })
-                    : (_e = this.BloxManager) === null || _e === void 0 ? void 0 : _e.createBlox({
-                        id: generateId(),
-                        type: BLOCK_TYPES.text,
-                        content: finalElement.innerHTML.trim(),
-                    });
-            })
-                .filter((block) => block != null && !block.isContentEmpty());
-            if (doc.body.children.length === 0) {
+            const parseElements = (elements) => {
+                return Array.from(elements)
+                    .map((element) => {
+                    var _a;
+                    // detect block-type override
+                    let predefinedBlockType = element.getAttribute("data-tbx-block") || "";
+                    const tagName = element.tagName.toLowerCase();
+                    if (tagName === "img")
+                        predefinedBlockType = BLOCK_TYPES.image;
+                    if (tagName === "iframe" &&
+                        this.LinkManager &&
+                        this.LinkManager.isYouTubeIframeVideo(element)) {
+                        predefinedBlockType = BLOCK_TYPES.video;
+                    }
+                    if (predefinedBlockType === BLOCK_TYPES.columns) {
+                        const columnsContainer = element.querySelector(".tbx-columns");
+                        if (columnsContainer) {
+                            const colDivs = Array.from(columnsContainer.children).filter((child) => child.classList.contains("tbx-column"));
+                            const columnBlock = this.BloxManager.createBlox({
+                                id: generateId(),
+                                type: BLOCK_TYPES.columns,
+                                content: "",
+                            });
+                            columnBlock.columns = colDivs.map((colDiv) => {
+                                const childBlocks = parseElements(colDiv.children);
+                                childBlocks.forEach((div) => console.log(div.type, div.content));
+                                if (childBlocks.length === 0) {
+                                    const empty = this.BloxManager.createBlox({
+                                        id: generateId(),
+                                        type: BLOCK_TYPES.text,
+                                        content: "",
+                                    });
+                                    return { blox: [empty] };
+                                }
+                                return { blox: childBlocks };
+                            });
+                            return columnBlock;
+                        }
+                    }
+                    // fallback to "normal" block
+                    const predefinedTag = (_a = BLOCKS_SETTINGS[predefinedBlockType]) === null || _a === void 0 ? void 0 : _a.tag;
+                    const type = predefinedTag || tagName;
+                    // figure out which element actually holds the final content
+                    const finalElement = this.getFinalElement(element, predefinedTag) || element;
+                    const setting = Object.values(BLOCKS_SETTINGS).find((s) => s.tag === type);
+                    if (setting) {
+                        return this.BloxManager.createBlox({
+                            id: generateId(),
+                            type: setting.blockName,
+                            content: setting.blockName === BLOCK_TYPES.image
+                                ? finalElement.getAttribute("src") || ""
+                                : setting.blockName === BLOCK_TYPES.video
+                                    ? finalElement.getAttribute("src") || ""
+                                    : finalElement.innerHTML.trim(),
+                            style: finalElement.getAttribute("style"),
+                            classes: finalElement.getAttribute("class"),
+                            attributes: getAllowedAttributes(finalElement),
+                        });
+                    }
+                    else {
+                        // unknown tag → treat as text
+                        return this.BloxManager.createBlox({
+                            id: generateId(),
+                            type: BLOCK_TYPES.text,
+                            content: finalElement.innerHTML.trim(),
+                        });
+                    }
+                })
+                    .filter((block) => block != null && !block.isContentEmpty());
+            };
+            const topLevel = doc.body.children;
+            const blocks = parseElements(topLevel);
+            if (blocks.length === 0) {
                 const emptyBlock = (_a = this.BloxManager) === null || _a === void 0 ? void 0 : _a.createBlox({
                     id: generateId(),
                     type: BLOCK_TYPES.text,

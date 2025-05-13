@@ -52,7 +52,6 @@ export class EditorManager {
                     blockElement.setAttribute("class", block.classes);
                     blockElement.setAttribute("style", block.styles);
                     const attributes = block.getAttributes();
-                    console.log("attributes", attributes);
                     Object.entries(attributes).forEach(([key, value]) => {
                         blockElement.setAttribute(key, value.toString());
                     });
