@@ -1,3 +1,8 @@
+declare global {
+    interface Window {
+        typebloxEditor?: Typeblox;
+    }
+}
 import { detectedStyles, imageUploadFunction, onChangeFunction, Extension, BlockSettings, BlockType } from "./types";
 import { EventEmitter } from "events";
 import { Blox } from "./classes/Blox";

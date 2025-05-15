@@ -103,6 +103,7 @@ class Typeblox extends EventEmitter {
     init(options) {
         var _a, _b;
         const { HTMLString, onUpdate, onImageUpload, extensions, blocks, editorContainer, } = options;
+        window.typebloxEditor = this;
         if (HTMLString) {
             this.blox().setBlox(this.elements().parseHTMLToBlocks(HTMLString));
         }

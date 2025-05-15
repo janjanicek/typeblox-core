@@ -1,4 +1,11 @@
 import { EVENTS } from "./constants";
+
+declare global {
+  interface Window {
+    typebloxEditor?: Typeblox;
+  }
+}
+
 import { updateBlockSettings } from "./blockTypes";
 import {
   CustomRange,
@@ -162,6 +169,7 @@ class Typeblox extends EventEmitter {
       blocks,
       editorContainer,
     } = options;
+    window.typebloxEditor = this;
     if (HTMLString) {
       this.blox().setBlox(this.elements().parseHTMLToBlocks(HTMLString));
     } else {
