@@ -40,6 +40,10 @@ export const AVAILABLE_BLOCKS = [
 export function getAvailableBlocks() {
     return Object.values(BLOCKS_SETTINGS).map((block) => block.blockName);
 }
+export function getAvailableBlockTags() {
+    const tags = Object.values(BLOCKS_SETTINGS).map((block) => block.tag);
+    return Array.from(new Set(tags));
+}
 export function getBlockSettings() {
     return BLOCKS_SETTINGS;
 }

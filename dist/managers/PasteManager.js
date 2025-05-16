@@ -1,3 +1,4 @@
+import { getAvailableBlockTags } from "../blockTypes";
 export class PasteManager {
     constructor(initialDOMManager, initialBloxManager) {
         this.DOMManager = null;
@@ -21,7 +22,43 @@ export class PasteManager {
         if (!html)
             return;
         const clean = this.DOMManager.sanitizeHTML(html);
-        const newBlocks = this.DOMManager.parseHTMLToBlocks(clean);
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = clean;
+        const blockTags = getAvailableBlockTags();
+        const isBlockElement = (el) => blockTags.includes(el.tagName.toLowerCase());
+        // Batch consecutive inline/text nodes into <p> blocks, including entire content if no blocks
+        const batchInlineNodes = (container) => {
+            const nodes = Array.from(container.childNodes);
+            const newChildren = [];
+            let inlineFrag = document.createDocumentFragment();
+            const flushInline = () => {
+                if (inlineFrag.childNodes.length) {
+                    const p = document.createElement("p");
+                    // Use this loop to *move* nodes, preserving full structure:
+                    while (inlineFrag.firstChild) {
+                        p.appendChild(inlineFrag.firstChild);
+                    }
+                    newChildren.push(p);
+                }
+            };
+            nodes.forEach((node) => {
+                if (node.nodeType === Node.ELEMENT_NODE &&
+                    isBlockElement(node)) {
+                    flushInline();
+                    newChildren.push(node);
+                }
+                else {
+                    inlineFrag.appendChild(node);
+                }
+            });
+            flushInline();
+            container.innerHTML = "";
+            newChildren.forEach((n) => container.appendChild(n));
+        };
+        batchInlineNodes(wrapper);
+        // *** REMOVE the old wrapping logic here, since batching already wraps everything ***
+        // Parse into blocks using your DOMManager parser
+        const newBlocks = this.DOMManager.parseHTMLToBlocks(wrapper.innerHTML);
         if (newBlocks.length > 1) {
             const all = this.BloxManager.getBlox();
             const current = this.BloxManager.getCurrentBlock();
@@ -33,17 +70,16 @@ export class PasteManager {
             ]);
             return;
         }
-        // Insert the sanitized HTML at the cursor position
+        // Fallback: insert sanitized HTML at cursor position
         const selection = window.getSelection();
         if (selection && selection.rangeCount > 0) {
             const range = selection.getRangeAt(0);
-            range.deleteContents(); // Remove selected content, if any
+            range.deleteContents();
             const fragment = range.createContextualFragment(clean);
             range.insertNode(fragment);
-            // Collapse the selection to the end of the inserted content
-            range.collapse(false); // `false` collapses the selection to the end
-            selection.removeAllRanges(); // Clear any remaining selection
-            selection.addRange(range); // Reset the collapsed range
+            range.collapse(false);
+            selection.removeAllRanges();
+            selection.addRange(range);
         }
     }
 }

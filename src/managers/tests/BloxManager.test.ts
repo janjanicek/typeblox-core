@@ -6,6 +6,7 @@ import { BloxManager } from "../BloxManager";
 import { Blox } from "../../classes/Blox";
 import { BLOCK_TYPES } from "../../blockTypes";
 import { createDOMManagerMock } from "./mocks/DOMManagerMock";
+import { createMockBlox } from "./mocks/CreateBloxMock";
 
 const createMockBlockElement = (id: string, innerHTML: string) => {
   const element = document.createElement("div");
@@ -27,21 +28,6 @@ describe("BloxManager", () => {
   } as any;
   const mockPasteManager = {} as any;
   const mockDOMManager = createDOMManagerMock();
-
-  // Helper function to create mock Blox instances
-  const createMockBlox = (id: string, content: string): Blox => {
-    return new Blox({
-      id,
-      type: "text",
-      content,
-      onUpdate: mockOnUpdate,
-      TypingManager: mockTypingManager,
-      StyleManager: mockStyleManager,
-      PasteManager: mockPasteManager,
-      DOMManager: mockDOMManager,
-      HistoryManager: mockHistoryManager,
-    });
-  };
 
   beforeEach(() => {
     mockOnChange = jest.fn();
@@ -68,8 +54,8 @@ describe("BloxManager", () => {
     });
 
     test("should return false when arrays have different lengths", () => {
-      const block1 = createMockBlox("1", "Block 1");
-      const block2 = createMockBlox("2", "Block 2");
+      const block1 = createMockBlox({ id: "1", content: "Block 1" });
+      const block2 = createMockBlox({ id: "2", content: "Block 2" });
       const result = (bloxManager as any).areBloxArraysEqual(
         [block1],
         [block1, block2],
@@ -78,8 +64,8 @@ describe("BloxManager", () => {
     });
 
     test("should return true when arrays have identical Blox properties", () => {
-      const block1 = createMockBlox("1", "Block 1");
-      const block2 = createMockBlox("2", "Block 2");
+      const block1 = createMockBlox({ id: "1", content: "Block 1" });
+      const block2 = createMockBlox({ id: "2", content: "Block 2" });
       const arrayA = [block1, block2];
       const arrayB = [block1, block2];
       const result = (bloxManager as any).areBloxArraysEqual(arrayA, arrayB);
@@ -87,9 +73,12 @@ describe("BloxManager", () => {
     });
 
     test("should return false when a block's property differs", () => {
-      const block1 = createMockBlox("1", "Block 1");
-      const block2 = createMockBlox("2", "Block 2");
-      const block2Different = createMockBlox("2", "Different Content");
+      const block1 = createMockBlox({ id: "1", content: "Block 1" });
+      const block2 = createMockBlox({ id: "2", content: "Block 2" });
+      const block2Different = createMockBlox({
+        id: "2",
+        content: "Different Content",
+      });
       const result = (bloxManager as any).areBloxArraysEqual(
         [block1, block2],
         [block1, block2Different],
@@ -99,7 +88,7 @@ describe("BloxManager", () => {
   });
 
   test("should add a new block after an existing block", () => {
-    const existingBlock = createMockBlox("1", "Block 1");
+    const existingBlock = createMockBlox({ id: "1", content: "Block 1" });
     bloxManager.setBlox([existingBlock]);
 
     const newBlockId = bloxManager.addBlockAfter("1", "text", "Block 2");
@@ -110,7 +99,7 @@ describe("BloxManager", () => {
   });
 
   test("should add a new block before an existing block", () => {
-    const existingBlock = createMockBlox("1", "Block 1");
+    const existingBlock = createMockBlox({ id: "1", content: "Block 1" });
     bloxManager.setBlox([existingBlock]);
 
     const newBlockId = bloxManager.addBlockBefore("1", "text", "Block 2");
@@ -132,8 +121,8 @@ describe("BloxManager", () => {
   });
 
   test("should remove a block by ID", () => {
-    const block1 = createMockBlox("1", "Block 1");
-    const block2 = createMockBlox("2", "Block 2");
+    const block1 = createMockBlox({ id: "1", content: "Block 1" });
+    const block2 = createMockBlox({ id: "2", content: "Block 2" });
     bloxManager.setBlox([block1, block2]);
 
     const result = bloxManager.removeById("1");
@@ -144,9 +133,9 @@ describe("BloxManager", () => {
   });
 
   test("should move a block up", () => {
-    const block1 = createMockBlox("1", "Block 1");
-    const block2 = createMockBlox("2", "Block 2");
-    const block3 = createMockBlox("3", "Block 3");
+    const block1 = createMockBlox({ id: "1", content: "Block 1" });
+    const block2 = createMockBlox({ id: "2", content: "Block 2" });
+    const block3 = createMockBlox({ id: "3", content: "Block 3" });
     bloxManager.setBlox([block1, block2, block3]);
 
     const result = bloxManager.moveBlockUp("2");
@@ -158,8 +147,8 @@ describe("BloxManager", () => {
   });
 
   test("should not move the first block up", () => {
-    const block1 = createMockBlox("1", "Block 1");
-    const block2 = createMockBlox("2", "Block 2");
+    const block1 = createMockBlox({ id: "1", content: "Block 1" });
+    const block2 = createMockBlox({ id: "2", content: "Block 2" });
     bloxManager.setBlox([block1, block2]);
 
     const result = bloxManager.moveBlockUp("1");
@@ -169,9 +158,9 @@ describe("BloxManager", () => {
   });
 
   test("should move a block down", () => {
-    const block1 = createMockBlox("1", "Block 1");
-    const block2 = createMockBlox("2", "Block 2");
-    const block3 = createMockBlox("3", "Block 3");
+    const block1 = createMockBlox({ id: "1", content: "Block 1" });
+    const block2 = createMockBlox({ id: "2", content: "Block 2" });
+    const block3 = createMockBlox({ id: "3", content: "Block 3" });
     bloxManager.setBlox([block1, block2, block3]);
 
     const result = bloxManager.moveBlockDown("2");
@@ -182,8 +171,8 @@ describe("BloxManager", () => {
   });
 
   test("should not move the last block down", () => {
-    const block1 = createMockBlox("1", "Block 1");
-    const block2 = createMockBlox("2", "Block 2");
+    const block1 = createMockBlox({ id: "1", content: "Block 1" });
+    const block2 = createMockBlox({ id: "2", content: "Block 2" });
     bloxManager.setBlox([block1, block2]);
 
     const result = bloxManager.moveBlockDown("2");
@@ -193,8 +182,8 @@ describe("BloxManager", () => {
   });
 
   test("should update blocks and call onChange", () => {
-    const block1 = createMockBlox("1", "Block 1");
-    const block2 = createMockBlox("2", "Block 2");
+    const block1 = createMockBlox({ id: "1", content: "Block 1" });
+    const block2 = createMockBlox({ id: "2", content: "Block 2" });
     bloxManager.setBlox([block1, block2]);
 
     mockDOMManager.blocksToHTML.mockReturnValue("<p>Block 1</p><p>Block 2</p>");
@@ -207,7 +196,7 @@ describe("BloxManager", () => {
     let block: Blox;
 
     beforeEach(() => {
-      block = createMockBlox("1", "Initial Content");
+      block = createMockBlox({ id: "1", content: "Initial Content" });
     });
 
     test("should get attributes as a key-value pair object", () => {
@@ -258,7 +247,7 @@ describe("BloxManager", () => {
   describe("split", () => {
     beforeEach(() => {
       bloxManager.setBlox([
-        createMockBlox("1", "<b>aaa</b>bbbb"), // First block
+        createMockBlox({ id: "1", content: "<b>aaa</b>bbbb" }), // First block
       ]);
     });
 
@@ -344,7 +333,7 @@ describe("BloxManager", () => {
   describe("merge", () => {
     beforeEach(() => {
       bloxManager.setBlox([
-        createMockBlox("1", "aaabbbb"), // First block
+        createMockBlox({ id: "1", content: "aaabbbb" }), // First block
       ]);
       bloxManager.getBlox().push(
         new Blox({
@@ -388,7 +377,7 @@ describe("BloxManager", () => {
 
     it("should merge the current block with the previous block and maintain cursor position", () => {
       bloxManager.setBlox([
-        createMockBlox("1", "aaabbbb"), // First block
+        createMockBlox({ id: "1", content: "aaabbbb" }), // First block
         new Blox({
           id: "2",
           content: "<b>cc</b>cc",

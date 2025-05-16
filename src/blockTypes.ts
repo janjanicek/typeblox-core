@@ -48,6 +48,11 @@ export function getAvailableBlocks(): string[] {
   return Object.values(BLOCKS_SETTINGS).map((block) => block.blockName);
 }
 
+export function getAvailableBlockTags(): string[] {
+  const tags = Object.values(BLOCKS_SETTINGS).map((block) => block.tag);
+  return Array.from(new Set(tags));
+}
+
 export function getBlockSettings(): Record<BlockType, BlockSettings> {
   return BLOCKS_SETTINGS;
 }

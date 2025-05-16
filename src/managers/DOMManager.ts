@@ -408,9 +408,6 @@ export class DOMManager {
 
               columnBlock.columns = colDivs.map((colDiv) => {
                 const childBlocks = parseElements(colDiv.children);
-                childBlocks.forEach((div) =>
-                  console.log(div.type, div.content),
-                );
 
                 if (childBlocks.length === 0) {
                   const empty = this.BloxManager!.createBlox({

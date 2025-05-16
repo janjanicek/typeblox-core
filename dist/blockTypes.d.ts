@@ -5,6 +5,7 @@ export declare function addBlockType(blockName: string, blockKey: string): void;
 export declare function removeBlockType(blockName: string): void;
 export declare const AVAILABLE_BLOCKS: BlockType[];
 export declare function getAvailableBlocks(): string[];
+export declare function getAvailableBlockTags(): string[];
 export declare function getBlockSettings(): Record<BlockType, BlockSettings>;
 export declare const DEFAULT_BLOCK_TYPE = "text";
 export declare const BLOCKS_SETTINGS: Record<BlockType, BlockSettings>;
